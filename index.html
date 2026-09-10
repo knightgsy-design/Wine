@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wine Tasting Evening — 26 September</title>
+  <meta name="description" content="A wine tasting evening at the GYC on Saturday 26th September, 6.30pm. Ten wines, charcuterie &amp; cheese, £30 per head. Book your place." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --wine: #5c1a2e;
+      --wine-dark: #3c0f1e;
+      --wine-light: #7d2740;
+      --gold: #c8a25c;
+      --gold-light: #e4cd9a;
+      --cream: #faf6ef;
+      --ink: #2b2320;
+      --ink-soft: #5a5049;
+      --line: #e6ddcc;
+      --ok: #3f7d4f;
+      --err: #a3372f;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      padding: 0 16px;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--wine-dark);
+      margin: 0;
+    }
+
+    a { color: var(--wine); }
+
+    /* ---------- Hero / Poster ---------- */
+    .hero {
+      background:
+        radial-gradient(circle at 20% 15%, rgba(200,162,92,0.18), transparent 45%),
+        linear-gradient(160deg, var(--wine-dark) 0%, var(--wine) 55%, var(--wine-light) 100%);
+      border-radius: 0 0 28px 28px;
+      padding: 44px 28px 36px;
+      margin: 0 -16px;
+      color: var(--cream);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(250,246,239,0.14) 1px, transparent 1.4px);
+      background-size: 22px 22px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .hero-inner { position: relative; }
+
+    .eyebrow {
+      font-size: 12.5px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      color: #fff;
+      font-size: clamp(32px, 7vw, 52px);
+      line-height: 1.08;
+      letter-spacing: 0.3px;
+    }
+
+    .hero .sub {
+      margin-top: 10px;
+      font-size: clamp(15px, 3vw, 18px);
+      color: var(--gold-light);
+      font-weight: 500;
+    }
+
+    .glass-divider {
+      margin: 22px auto;
+      width: 72px;
+      height: 2px;
+      background: var(--gold);
+      opacity: 0.8;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      background: rgba(250,246,239,0.12);
+      border: 1px solid rgba(228,205,154,0.45);
+      color: var(--cream);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+
+    .price-badge {
+      display: inline-block;
+      margin-top: 22px;
+      background: var(--gold);
+      color: var(--wine-dark);
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 20px;
+      padding: 10px 26px;
+      border-radius: 999px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+
+    /* ---------- Sections ---------- */
+    section { margin-top: 34px; }
+
+    .section-title {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .section-title .small {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+    }
+
+    .highlights {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .highlights { grid-template-columns: 1fr; }
+    }
+
+    .highlight {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .highlight .icon { font-size: 22px; }
+
+    .highlight h3 {
+      font-size: 15.5px;
+      margin: 8px 0 4px;
+    }
+
+    .highlight p {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .hosts {
+      margin-top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .host-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .host-row .tag {
+      flex: none;
+      font-weight: 700;
+      color: var(--wine);
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      min-width: 84px;
+    }
+
+    .notice {
+      margin-top: 16px;
+      background: #fbf2e3;
+      border: 1px solid var(--gold);
+      border-left-width: 4px;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #6b4a13;
+    }
+
+    .notice strong { color: #4d3405; }
+
+    /* ---------- Booking ---------- */
+    .avail-card {
+      background: linear-gradient(135deg, #fff, #fdfaf3);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px 22px;
+    }
+
+    .avail-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .avail-top .count {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 26px;
+      color: var(--wine-dark);
+    }
+
+    .avail-top .label {
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    .bar-track {
+      margin-top: 12px;
+      height: 10px;
+      border-radius: 999px;
+      background: #eee3d1;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--wine), var(--gold));
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .avail-note {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+    }
+
+    form.booking-form {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .field .hint {
+      font-weight: 400;
+      color: var(--ink-soft);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 480px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    input, select, textarea {
+      font-family: inherit;
+      font-size: 15px;
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1px solid #d8cdb8;
+      background: #fff;
+      color: var(--ink);
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--gold);
+      outline-offset: 1px;
+      border-color: var(--gold);
+    }
+
+    textarea { resize: vertical; min-height: 64px; }
+
+    button.submit {
+      margin-top: 4px;
+      background: var(--wine);
+      color: #fff;
+      border: none;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 17px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    button.submit:hover { background: var(--wine-light); }
+    button.submit:active { transform: translateY(1px); }
+
+    button.submit:disabled {
+      background: #b9aa9a;
+      cursor: not-allowed;
+    }
+
+    .form-msg {
+      display: none;
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .form-msg.show { display: block; }
+
+    .form-msg.ok {
+      background: #eaf5ec;
+      border: 1px solid var(--ok);
+      color: #245331;
+    }
+
+    .form-msg.err {
+      background: #fbeceb;
+      border: 1px solid var(--err);
+      color: #7a251f;
+    }
+
+    .full-msg {
+      display: none;
+      text-align: center;
+      padding: 18px;
+      font-size: 14.5px;
+      color: var(--ink-soft);
+    }
+
+    .full-msg.show { display: block; }
+
+    footer {
+      margin: 40px 0 28px;
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      line-height: 1.7;
+    }
+
+    footer .glass-divider { margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="eyebrow">An Evening of Fine Wine &amp; Good Company</div>
+        <h1>Wine Tasting<br />Evening</h1>
+        <div class="sub">Ten wines &middot; Red, White &amp; Ros&eacute;</div>
+        <div class="glass-divider"></div>
+        <div class="hero-meta">
+          <span class="pill">📅 Saturday 26 September</span>
+          <span class="pill">🕡 6.30pm</span>
+          <span class="pill">📍 The GYC</span>
+        </div>
+        <div class="price-badge">£30 per head</div>
+      </div>
+    </div>
+
+    <section>
+      <div class="card">
+        <div class="section-title">
+          <span class="small">The Evening</span>
+          On the Tasting Table
+        </div>
+        <div class="highlights">
+          <div class="highlight">
+            <div class="icon">🍷</div>
+            <h3>10 Wines to Taste</h3>
+            <p>A curated collection spanning red, white &amp; ros&eacute;.</p>
+          </div>
+          <div class="highlight">
+            <div class="icon">🧀</div>
+            <h3>Charcuterie &amp; Cheese</h3>
+            <p>A generous board to accompany every glass.</p>
+          </div>
+          <div class="highlight">
+            <div class="icon">🛒</div>
+            <h3>Wholesale Wine Offer</h3>
+            <p>Buy any of the night's wines at wholesale prices.</p>
+          </div>
+          <div class="highlight">
+            <div class="icon">🎉</div>
+            <h3>Fun &amp; Entertainment</h3>
+            <p>A relaxed, sociable evening for all.</p>
+          </div>
+        </div>
+
+        <div class="hosts">
+          <div class="host-row">
+            <span class="tag">Wines by</span>
+            <span>Richard Allisette, from <strong>The Grape Vine</strong></span>
+          </div>
+          <div class="host-row">
+            <span class="tag">Presented by</span>
+            <span>Robin Fuller</span>
+          </div>
+        </div>
+
+        <div class="notice">
+          <strong>Wholesale purchase window:</strong> after the tasting, you're welcome to buy any of the featured
+          wines at wholesale prices. This offer is only available for <strong>48 hours after the event</strong> —
+          it closes at close of business on <strong>Monday 28th September</strong>.
+        </div>
+      </div>
+    </section>
+
+    <section id="book">
+      <div class="section-title">
+        <span class="small">Reserve Your Place</span>
+        Book Now
+      </div>
+
+      <div class="avail-card" style="margin-top:14px;">
+        <div class="avail-top">
+          <span class="count" id="remainingCount">–</span>
+          <span class="label" id="remainingLabel">checking availability&hellip;</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <div class="avail-note">Maximum 40 places for the evening.</div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <form class="booking-form" id="bookingForm">
+          <div class="two-col">
+            <div class="field">
+              <label for="name">Full name</label>
+              <input type="text" id="name" name="name" autocomplete="name" required />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" autocomplete="email" required />
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label for="phone">Phone <span class="hint">(optional)</span></label>
+              <input type="tel" id="phone" name="phone" autocomplete="tel" />
+            </div>
+            <div class="field">
+              <label for="guests">Number of places</label>
+              <select id="guests" name="guests" required></select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="notes">Dietary requirements / notes <span class="hint">(optional)</span></label>
+            <textarea id="notes" name="notes" placeholder="e.g. vegetarian, allergies&hellip;"></textarea>
+          </div>
+
+          <div class="form-msg" id="formMsg"></div>
+
+          <button type="submit" class="submit" id="submitBtn">Book My Place — £30pp</button>
+        </form>
+
+        <div class="full-msg" id="fullMsg">
+          This event is now fully booked. Please contact the organiser if you'd like to be added to a waiting list.
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="glass-divider"></div>
+      Wine Tasting Evening &middot; Saturday 26 September, 6.30pm &middot; The GYC<br />
+      Wines supplied by Richard Allisette (The Grape Vine) &middot; Presented by Robin Fuller
+    </footer>
+  </div>
+
+  <script>
+    const API = '/api/booking';
+    const remainingCountEl = document.getElementById('remainingCount');
+    const remainingLabelEl = document.getElementById('remainingLabel');
+    const barFillEl = document.getElementById('barFill');
+    const guestsSelect = document.getElementById('guests');
+    const form = document.getElementById('bookingForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const formMsg = document.getElementById('formMsg');
+    const fullMsg = document.getElementById('fullMsg');
+
+    const MAX_PER_BOOKING = 8;
+    let currentRemaining = null;
+
+    function showMsg(kind, text) {
+      formMsg.textContent = text;
+      formMsg.className = 'form-msg show ' + kind;
+    }
+
+    function clearMsg() {
+      formMsg.className = 'form-msg';
+      formMsg.textContent = '';
+    }
+
+    function populateGuestOptions(remaining) {
+      const max = Math.max(0, Math.min(MAX_PER_BOOKING, remaining));
+      guestsSelect.innerHTML = '';
+      for (let i = 1; i <= max; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = i + (i === 1 ? ' place' : ' places');
+        guestsSelect.appendChild(opt);
+      }
+    }
+
+    function applyStatus(status) {
+      const capacity = status.capacity ?? 40;
+      const remaining = Math.max(0, status.remaining ?? 0);
+      currentRemaining = remaining;
+      const takenPct = Math.min(100, Math.round(((capacity - remaining) / capacity) * 100));
+
+      barFillEl.style.width = takenPct + '%';
+      remainingCountEl.textContent = remaining;
+      remainingLabelEl.textContent = remaining === 1 ? 'place left of ' + capacity : 'places left of ' + capacity;
+
+      populateGuestOptions(remaining);
+
+      if (remaining <= 0) {
+        form.style.display = 'none';
+        fullMsg.classList.add('show');
+      } else {
+        form.style.display = 'grid';
+        fullMsg.classList.remove('show');
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch(API);
+        const data = await res.json();
+        applyStatus(data);
+      } catch (e) {
+        remainingLabelEl.textContent = 'availability unavailable — please try refreshing';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearMsg();
+
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        guests: Number(guestsSelect.value),
+        notes: document.getElementById('notes').value.trim(),
+      };
+
+      if (!payload.name || !payload.email || !payload.guests) {
+        showMsg('err', 'Please fill in your name, email and number of places.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Booking…';
+
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg('err', data.error || 'Sorry, something went wrong. Please try again.');
+          if (typeof data.remaining === 'number') applyStatus(data);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Book My Place — £30pp';
+          return;
+        }
+
+        showMsg('ok', `You're booked in, ${payload.name}! (${payload.guests} place${payload.guests > 1 ? 's' : ''}). A confirmation has been noted — payment of £30 per head is due on the night.`);
+        form.reset();
+        applyStatus(data);
+        submitBtn.textContent = 'Book My Place — £30pp';
+      } catch (err) {
+        showMsg('err', 'Network error — please check your connection and try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Book My Place — £30pp';
+      }
+    });
+
+    loadStatus();
+  </script>
+</body>
+</html>

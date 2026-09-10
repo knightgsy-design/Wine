@@ -1,0 +1,12 @@
+{
+  "name": "wine-tasting-booking",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Booking page for the wine tasting evening, 26 September, 6.30pm at the GYC.",
+  "dependencies": {
+    "@netlify/blobs": "^8.2.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.8.2"
+  }
+}
