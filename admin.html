@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wine Tasting — Booking Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --wine: #5c1a2e;
+      --wine-dark: #3c0f1e;
+      --wine-light: #7d2740;
+      --gold: #c8a25c;
+      --gold-light: #e4cd9a;
+      --cream: #faf6ef;
+      --ink: #2b2320;
+      --ink-soft: #5a5049;
+      --line: #e6ddcc;
+      --ok: #3f7d4f;
+      --err: #a3372f;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body { padding: 0 16px 60px; }
+
+    .wrap { max-width: 980px; margin: 0 auto; }
+
+    h1, h2 { font-family: 'Playfair Display', Georgia, serif; color: var(--wine-dark); margin: 0; }
+
+    header.top {
+      background: linear-gradient(160deg, var(--wine-dark) 0%, var(--wine) 100%);
+      border-radius: 0 0 20px 20px;
+      margin: 0 -16px;
+      padding: 26px 24px 22px;
+      color: #fff;
+    }
+
+    header.top .eyebrow {
+      font-size: 12px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    header.top h1 { color: #fff; font-size: 26px; }
+    header.top p { margin: 6px 0 0; color: var(--gold-light); font-size: 13.5px; }
+
+    /* ---------- Gate ---------- */
+    #gate {
+      max-width: 420px;
+      margin: 60px auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 26px;
+      text-align: center;
+    }
+    #gate p { color: var(--ink-soft); font-size: 13.5px; margin: 8px 0 18px; }
+    #gate input {
+      width: 100%;
+      font-size: 15px;
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1px solid #d8cdb8;
+      margin-bottom: 12px;
+    }
+    #gate button, .btn {
+      background: var(--wine);
+      color: #fff;
+      border: none;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 11px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #gate button:hover, .btn:hover { background: var(--wine-light); }
+    #gateError { color: var(--err); font-size: 13px; min-height: 18px; margin-top: 4px; }
+
+    /* ---------- App ---------- */
+    #app { display: none; }
+    #app.show { display: block; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat .num {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--wine-dark);
+    }
+    .stat .lbl { font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft); margin-top: 2px; }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-top: 18px;
+    }
+    .panel h2 { font-size: 17px; margin-bottom: 10px; }
+
+    .reserved-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .reserved-row input[type="number"] {
+      width: 90px;
+      font-size: 15px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #d8cdb8;
+    }
+    .reserved-row .hint { font-size: 12.5px; color: var(--ink-soft); flex-basis: 100%; }
+
+    .btn.small { font-size: 13px; padding: 8px 14px; border-radius: 8px; }
+    .btn.danger { background: var(--err); }
+    .btn.danger:hover { background: #832c26; }
+    .btn.ghost {
+      background: transparent;
+      color: var(--wine);
+      border: 1px solid var(--wine);
+    }
+    .btn.ghost:hover { background: #fbf2ea; }
+    .btn:disabled { background: #b9aa9a; cursor: not-allowed; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      padding: 8px 8px;
+      border-bottom: 2px solid var(--line);
+      white-space: nowrap;
+    }
+    td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      font-size: 13.5px;
+    }
+    td input, td textarea {
+      width: 100%;
+      font: inherit;
+      font-size: 13.5px;
+      padding: 6px 8px;
+      border-radius: 7px;
+      border: 1px solid #d8cdb8;
+      background: #fffdf9;
+    }
+    td input[type="number"] { width: 64px; }
+    td textarea { resize: vertical; min-height: 32px; }
+    .row-actions { display: flex; gap: 6px; white-space: nowrap; }
+    .row-msg { font-size: 11.5px; margin-top: 3px; }
+    .row-msg.err { color: var(--err); }
+    .row-msg.ok { color: var(--ok); }
+    .created { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
+    .empty-row td { text-align: center; color: var(--ink-soft); padding: 22px 8px; }
+
+    .table-scroll { overflow-x: auto; }
+
+    .add-form {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr) auto;
+      gap: 8px;
+      margin-top: 14px;
+      align-items: start;
+    }
+    @media (max-width: 800px) { .add-form { grid-template-columns: 1fr 1fr; } }
+    .add-form input, .add-form textarea {
+      font: inherit;
+      font-size: 13.5px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #d8cdb8;
+    }
+    .add-form label { font-size: 11px; color: var(--ink-soft); display: block; margin-bottom: 3px; }
+
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+    .toolbar .actions { display: flex; gap: 8px; }
+
+    .banner {
+      display: none;
+      margin-top: 14px;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 13.5px;
+    }
+    .banner.show { display: block; }
+    .banner.ok { background: #eaf5ec; border: 1px solid var(--ok); color: #245331; }
+    .banner.err { background: #fbeceb; border: 1px solid var(--err); color: #7a251f; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="eyebrow">Backstage</div>
+      <h1>Wine Tasting Evening — Bookings</h1>
+      <p>Saturday 26 September, 6.30pm · The GYC · Live guest list &amp; capacity</p>
+    </header>
+
+    <div id="gate">
+      <h2>Admin access</h2>
+      <p>Enter the admin key to view and manage bookings.</p>
+      <input type="password" id="keyInput" placeholder="Admin key" autocomplete="off" />
+      <button id="unlockBtn" class="btn" style="width:100%;">Unlock</button>
+      <div id="gateError"></div>
+    </div>
+
+    <div id="app">
+      <div class="stats">
+        <div class="stat"><div class="num" id="statCapacity">–</div><div class="lbl">Capacity</div></div>
+        <div class="stat"><div class="num" id="statReserved">–</div><div class="lbl">Reserved elsewhere</div></div>
+        <div class="stat"><div class="num" id="statOnline">–</div><div class="lbl">Booked online</div></div>
+        <div class="stat"><div class="num" id="statRemaining">–</div><div class="lbl">Remaining</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Reserved seats</h2>
+        <div class="reserved-row">
+          <input type="number" id="reservedInput" min="0" max="40" />
+          <button class="btn small" id="reservedSaveBtn">Update</button>
+          <span class="row-msg" id="reservedMsg"></span>
+          <span class="hint">Seats taken outside this form (e.g. booked in person or by phone). Total capacity is fixed at 40.</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <h2 style="margin:0;">Guest list</h2>
+          <div class="actions">
+            <button class="btn ghost small" id="refreshBtn">Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Places</th>
+                <th>Notes</th>
+                <th>Booked</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="bookingsBody">
+              <tr class="empty-row"><td colspan="7">Loading&hellip;</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 style="font-size:15px; margin-top:22px;">Add a booking</h2>
+        <div class="add-form">
+          <div>
+            <label>Name</label>
+            <input type="text" id="addName" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input type="email" id="addEmail" />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input type="text" id="addPhone" />
+          </div>
+          <div>
+            <label>Places</label>
+            <input type="number" id="addGuests" min="1" max="8" value="1" />
+          </div>
+          <div>
+            <label>Notes</label>
+            <input type="text" id="addNotes" />
+          </div>
+          <div style="align-self:end;">
+            <button class="btn small" id="addBtn" style="width:100%;">Add</button>
+          </div>
+        </div>
+
+        <div class="banner" id="banner"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/booking';
+    const STORAGE_KEY = 'wineAdminKey';
+
+    const gate = document.getElementById('gate');
+    const app = document.getElementById('app');
+    const keyInput = document.getElementById('keyInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const gateError = document.getElementById('gateError');
+
+    const statCapacity = document.getElementById('statCapacity');
+    const statReserved = document.getElementById('statReserved');
+    const statOnline = document.getElementById('statOnline');
+    const statRemaining = document.getElementById('statRemaining');
+
+    const reservedInput = document.getElementById('reservedInput');
+    const reservedSaveBtn = document.getElementById('reservedSaveBtn');
+    const reservedMsg = document.getElementById('reservedMsg');
+
+    const bookingsBody = document.getElementById('bookingsBody');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const banner = document.getElementById('banner');
+
+    let adminKey = '';
+
+    function showBanner(kind, text) {
+      banner.textContent = text;
+      banner.className = 'banner show ' + kind;
+      setTimeout(() => { banner.className = 'banner'; }, 4000);
+    }
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'x-admin-key': adminKey };
+    }
+
+    async function api(method, body) {
+      const res = await fetch(API + (method === 'GET' ? ('?admin=' + encodeURIComponent(adminKey)) : ''), {
+        method,
+        headers: authHeaders(),
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+      return data;
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '–';
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) + ' ' +
+             d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderStats(status) {
+      statCapacity.textContent = status.capacity;
+      statReserved.textContent = status.reserved;
+      statOnline.textContent = status.online;
+      statRemaining.textContent = status.remaining;
+      reservedInput.value = status.reserved;
+    }
+
+    function renderBookings(bookings) {
+      bookingsBody.innerHTML = '';
+      if (!bookings.length) {
+        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings yet.</td></tr>';
+        return;
+      }
+
+      bookings
+        .slice()
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .forEach((b) => {
+          const tr = document.createElement('tr');
+          tr.dataset.id = b.id;
+          tr.innerHTML = `
+            <td><input type="text" class="f-name" value="${escapeAttr(b.name)}" /></td>
+            <td><input type="email" class="f-email" value="${escapeAttr(b.email)}" /></td>
+            <td><input type="text" class="f-phone" value="${escapeAttr(b.phone || '')}" /></td>
+            <td><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
+            <td><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
+            <td class="created">${fmtDate(b.createdAt)}</td>
+            <td>
+              <div class="row-actions">
+                <button class="btn small save-btn">Save</button>
+                <button class="btn small danger del-btn">Delete</button>
+              </div>
+              <div class="row-msg"></div>
+            </td>
+          `;
+          bookingsBody.appendChild(tr);
+        });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/"/g, '&quot;');
+    }
+
+    async function loadAll() {
+      const data = await api('GET');
+      renderStats(data);
+      renderBookings(data.bookings || []);
+    }
+
+    async function unlock() {
+      const key = keyInput.value.trim();
+      if (!key) return;
+      adminKey = key;
+      gateError.textContent = '';
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = 'Checking…';
+      try {
+        await loadAll();
+        localStorage.setItem(STORAGE_KEY, key);
+        gate.style.display = 'none';
+        app.classList.add('show');
+      } catch (e) {
+        gateError.textContent = 'Incorrect key or nothing to load — please try again.';
+        adminKey = '';
+      } finally {
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = 'Unlock';
+      }
+    }
+
+    unlockBtn.addEventListener('click', unlock);
+    keyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlock(); });
+
+    refreshBtn.addEventListener('click', () => loadAll().catch((e) => showBanner('err', e.message)));
+
+    reservedSaveBtn.addEventListener('click', async () => {
+      reservedMsg.className = 'row-msg';
+      reservedMsg.textContent = '';
+      try {
+        const data = await api('PATCH', { reserved: Number(reservedInput.value) });
+        renderStats(data);
+        renderBookings(data.bookings || []);
+        reservedMsg.textContent = 'Saved';
+        reservedMsg.className = 'row-msg ok';
+      } catch (e) {
+        reservedMsg.textContent = e.message;
+        reservedMsg.className = 'row-msg err';
+      }
+    });
+
+    bookingsBody.addEventListener('click', async (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr || !tr.dataset.id) return;
+      const id = tr.dataset.id;
+      const msgEl = tr.querySelector('.row-msg');
+
+      if (e.target.classList.contains('save-btn')) {
+        const payload = {
+          id,
+          name: tr.querySelector('.f-name').value.trim(),
+          email: tr.querySelector('.f-email').value.trim(),
+          phone: tr.querySelector('.f-phone').value.trim(),
+          guests: Number(tr.querySelector('.f-guests').value),
+          notes: tr.querySelector('.f-notes').value.trim(),
+        };
+        msgEl.textContent = 'Saving…';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('PATCH', payload);
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner('ok', 'Booking updated.');
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+        }
+      }
+
+      if (e.target.classList.contains('del-btn')) {
+        const name = tr.querySelector('.f-name').value || 'this booking';
+        if (!confirm(`Delete ${name}? This can't be undone.`)) return;
+        msgEl.textContent = 'Deleting…';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('DELETE', { id });
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner('ok', 'Booking deleted.');
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+        }
+      }
+    });
+
+    document.getElementById('addBtn').addEventListener('click', async () => {
+      const payload = {
+        name: document.getElementById('addName').value.trim(),
+        email: document.getElementById('addEmail').value.trim(),
+        phone: document.getElementById('addPhone').value.trim(),
+        guests: Number(document.getElementById('addGuests').value),
+        notes: document.getElementById('addNotes').value.trim(),
+      };
+      if (!payload.name || !payload.email) {
+        showBanner('err', 'Name and email are required.');
+        return;
+      }
+      try {
+        const data = await api('POST', payload);
+        renderStats(data);
+        renderBookings(data.bookings || []);
+        ['addName', 'addEmail', 'addPhone', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
+        document.getElementById('addGuests').value = 1;
+        showBanner('ok', 'Booking added.');
+      } catch (err) {
+        showBanner('err', err.message);
+      }
+    });
+
+    // Auto-unlock if a key is already saved in this browser.
+    (function init() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        keyInput.value = saved;
+        unlock();
+      }
+    })();
+  </script>
+</body>
+</html>

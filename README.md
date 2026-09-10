@@ -22,18 +22,39 @@ evening on **Saturday 26th September, 6.30pm at the GYC**.
   online form (adjust `RESERVED_SEATS` in `booking.mts` if that number
   changes). Remaining places = 40 − reserved − sum of online bookings.
 
-## Viewing the guest list (organiser only)
+## Admin page — view & amend bookings live
 
 Set an `ADMIN_KEY` environment variable on the Netlify site (Site
 configuration → Environment variables). Then visit:
 
 ```
-https://<your-site>/api/booking?admin=YOUR_ADMIN_KEY
+https://<your-site>/admin
 ```
 
-to get the full JSON list of bookings (name, email, phone, guests, notes,
-timestamp) alongside the capacity summary. Treat this URL as a secret —
-anyone with the key can see the guest list.
+Enter the admin key once (it's remembered in that browser) to see a live
+guest list — capacity summary, every booking with editable name/email/
+phone/guest count/notes, a delete button per booking, an editable "reserved
+elsewhere" seat count, and a form to add a booking manually (e.g. someone
+who booked by phone). Every change writes straight to the same Blobs store
+the public form uses, so the public page's availability count updates
+immediately too.
+
+Treat `/admin` and the admin key as sensitive — anyone with the key can see
+and edit the guest list. The key is also accepted as `?admin=YOUR_ADMIN_KEY`
+on `GET /api/booking` for scripted/manual checks, returning the same JSON
+the admin page consumes.
+
+### Admin API (used by `/admin`, callable directly too)
+
+All admin calls require the key, either as header `x-admin-key: <key>` or
+query param `?admin=<key>`.
+
+- `GET /api/booking?admin=<key>` → status + full `bookings` array
+- `PATCH /api/booking` with `{ id, name?, email?, phone?, guests?, notes? }`
+  → edits one booking (capacity-checked against the other bookings)
+- `PATCH /api/booking` with `{ reserved: <number> }` (no `id`) → updates the
+  "reserved elsewhere" seat count
+- `DELETE /api/booking` with `{ id }` → removes a booking
 
 ## Local development
 
