@@ -61,6 +61,13 @@ function isAdmin(req: Request, url: URL): boolean {
   return headerKey === configuredKey || queryKey === configuredKey;
 }
 
+// True whenever the request identified itself as an admin call at all
+// (right key or wrong) — as opposed to the public page, which never sends
+// either of these.
+function isAdminAttempt(req: Request, url: URL): boolean {
+  return Boolean(req.headers.get("x-admin-key") || url.searchParams.get("admin"));
+}
+
 export default async (req: Request, context: Context) => {
   const store = getBookingStore();
   const url = new URL(req.url);
@@ -72,6 +79,12 @@ export default async (req: Request, context: Context) => {
 
     if (isAdmin(req, url)) {
       return Response.json({ ...status, bookings: data.bookings });
+    }
+    // A wrong admin key must fail loudly, not silently degrade to the
+    // public (bookings-less) shape — that left the admin page's guest
+    // list blank with no indication the key was wrong.
+    if (isAdminAttempt(req, url)) {
+      return Response.json({ error: "Unauthorized." }, { status: 401 });
     }
     return Response.json(status);
   }
