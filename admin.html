@@ -188,6 +188,39 @@
     .email-status.ok { color: var(--ok); }
     .email-status.bad { color: var(--err); }
 
+    /* Below this width a data table is unreadable no matter how much you
+       shrink it, so bookings render as stacked cards instead. */
+    @media (max-width: 720px) {
+      .table-scroll { overflow-x: visible; }
+      table, tbody, tr { display: block; width: 100%; }
+      thead { display: none; }
+      tr:not(.empty-row) {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px 14px;
+        margin-bottom: 12px;
+        background: #fffdf9;
+      }
+      td {
+        display: block;
+        border: none;
+        padding: 7px 0;
+      }
+      td:not(:last-child) { border-bottom: 1px dashed var(--line); }
+      td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 10.5px;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin-bottom: 3px;
+      }
+      td.created, td.email-status { padding: 7px 0; }
+      .row-actions { flex-wrap: wrap; }
+      .row-actions button { flex: 1 1 auto; }
+    }
+
     .table-scroll { overflow-x: auto; }
 
     .add-form {
@@ -198,6 +231,7 @@
       align-items: start;
     }
     @media (max-width: 800px) { .add-form { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .add-form { grid-template-columns: 1fr; } }
     .add-form input, .add-form textarea {
       font: inherit;
       font-size: 13.5px;
@@ -391,13 +425,13 @@
           const tr = document.createElement('tr');
           tr.dataset.id = b.id;
           tr.innerHTML = `
-            <td><input type="text" class="f-name" value="${escapeAttr(b.name)}" /></td>
-            <td><input type="email" class="f-email" value="${escapeAttr(b.email)}" /></td>
-            <td><input type="text" class="f-phone" value="${escapeAttr(b.phone || '')}" /></td>
-            <td><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
-            <td><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
-            <td class="created">${fmtDate(b.createdAt)}</td>
-            <td class="email-status ${b.confirmationSent ? 'ok' : 'bad'}">${b.confirmationSent ? 'Sent' : 'Not sent'}</td>
+            <td data-label="Name"><input type="text" class="f-name" value="${escapeAttr(b.name)}" /></td>
+            <td data-label="Email"><input type="email" class="f-email" value="${escapeAttr(b.email)}" /></td>
+            <td data-label="Phone"><input type="text" class="f-phone" value="${escapeAttr(b.phone || '')}" /></td>
+            <td data-label="Places"><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
+            <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
+            <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
+            <td class="email-status ${b.confirmationSent ? 'ok' : 'bad'}" data-label="Confirmation">${b.confirmationSent ? 'Sent' : 'Not sent'}</td>
             <td>
               <div class="row-actions">
                 <button class="btn small save-btn">Save</button>
