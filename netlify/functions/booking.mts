@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
+import { sendConfirmations } from "../lib/email.mts";
 
 // --- Event configuration -----------------------------------------------
 const CAPACITY = 40;
@@ -21,6 +22,7 @@ interface Booking {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
+  confirmationSent?: boolean;
 }
 
 interface BookingData {
@@ -127,12 +129,20 @@ export default async (req: Request, context: Context) => {
       notes,
       createdAt: new Date().toISOString(),
     };
-
     data.bookings.push(booking);
+
+    // A missing/misconfigured email key can never lose a booking — the
+    // booking is already in `data.bookings` regardless of how this goes.
+    const emailResult = await sendConfirmations(booking);
+    booking.confirmationSent = emailResult.ok;
+
     await store.setJSON(BOOKINGS_KEY, data);
 
     const updated = computeStatus(data);
-    return Response.json({ success: true, booking, ...updated }, { status: 201 });
+    return Response.json(
+      { success: true, booking, ...updated, emailed: emailResult.ok ? true : emailResult.reason ?? false },
+      { status: 201 },
+    );
   }
 
   // ---- PATCH: admin-only — edit a booking, or update reserved seats ----
@@ -167,6 +177,21 @@ export default async (req: Request, context: Context) => {
     const booking = data.bookings.find((b) => b.id === id);
     if (!booking) {
       return Response.json({ error: "Booking not found." }, { status: 404 });
+    }
+
+    // Resending a confirmation — no field changes, just re-send and report.
+    if (body.action === "resend") {
+      const result = await sendConfirmations(booking);
+      booking.confirmationSent = result.ok;
+      await store.setJSON(BOOKINGS_KEY, data);
+      const status = computeStatus(data);
+      return Response.json({
+        success: result.ok,
+        outcome: result.ok ? "sent" : result.reason ?? "failed",
+        booking,
+        ...status,
+        bookings: data.bookings,
+      });
     }
 
     const nextName = body.name !== undefined ? String(body.name).trim() : booking.name;

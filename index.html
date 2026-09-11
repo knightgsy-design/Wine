@@ -632,7 +632,10 @@
           return;
         }
 
-        showMsg('ok', `You're booked in, ${payload.name}! (${payload.guests} place${payload.guests > 1 ? 's' : ''}). A confirmation has been noted — payment of £30 per head is due on the night.`);
+        const emailNote = data.emailed === true
+          ? ' A confirmation email is on its way to you.'
+          : ' (We couldn\'t send a confirmation email just now, but your place is booked.)';
+        showMsg('ok', `You're booked in, ${payload.name}! (${payload.guests} place${payload.guests > 1 ? 's' : ''}).${emailNote} Payment of £30 per head is due on the night.`);
         form.reset();
         applyStatus(data);
         submitBtn.textContent = 'Book My Place — £30pp';

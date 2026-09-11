@@ -54,7 +54,30 @@ query param `?admin=<key>`.
   → edits one booking (capacity-checked against the other bookings)
 - `PATCH /api/booking` with `{ reserved: <number> }` (no `id`) → updates the
   "reserved elsewhere" seat count
+- `PATCH /api/booking` with `{ id, action: "resend" }` → re-sends that
+  booking's confirmation email
 - `DELETE /api/booking` with `{ id }` → removes a booking
+
+## Confirmation emails
+
+Same pattern as the club's other event sites (`gyc-jog-dinner`,
+`gyc-air-display-bbq`): emails go out via **Brevo**, sent from
+`netlify/lib/email.mts`, triggered automatically whenever a booking is
+created (from the public form or added by an admin).
+
+Set these environment variables on the Netlify site for it to actually send:
+
+- `BREVO_API_KEY` — a Brevo transactional API key (same one used on the
+  club's other sites, if you're reusing that account)
+- `FROM_EMAIL` — the verified sender address (e.g. `commodore@gyc.org.gg`,
+  as used elsewhere)
+- `CLUB_EMAIL` *(optional)* — if set, a copy of each booking's details is
+  also sent here
+
+If `BREVO_API_KEY` or `FROM_EMAIL` isn't set, sending is skipped (logged,
+not thrown) — a booking is never lost over a missing email key. Each
+booking records whether its confirmation actually sent
+(`confirmationSent`), shown on `/admin` with a **Resend** button per row.
 
 ## Local development
 

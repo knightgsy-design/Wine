@@ -184,6 +184,9 @@
     .row-msg.ok { color: var(--ok); }
     .created { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
     .empty-row td { text-align: center; color: var(--ink-soft); padding: 22px 8px; }
+    .email-status { font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .email-status.ok { color: var(--ok); }
+    .email-status.bad { color: var(--err); }
 
     .table-scroll { overflow-x: auto; }
 
@@ -271,11 +274,12 @@
                 <th>Places</th>
                 <th>Notes</th>
                 <th>Booked</th>
+                <th>Confirmation</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="bookingsBody">
-              <tr class="empty-row"><td colspan="7">Loading&hellip;</td></tr>
+              <tr class="empty-row"><td colspan="8">Loading&hellip;</td></tr>
             </tbody>
           </table>
         </div>
@@ -376,7 +380,7 @@
     function renderBookings(bookings) {
       bookingsBody.innerHTML = '';
       if (!bookings.length) {
-        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings yet.</td></tr>';
+        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="8">No bookings yet.</td></tr>';
         return;
       }
 
@@ -393,9 +397,11 @@
             <td><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
             <td><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
             <td class="created">${fmtDate(b.createdAt)}</td>
+            <td class="email-status ${b.confirmationSent ? 'ok' : 'bad'}">${b.confirmationSent ? 'Sent' : 'Not sent'}</td>
             <td>
               <div class="row-actions">
                 <button class="btn small save-btn">Save</button>
+                <button class="btn small ghost resend-btn">Resend</button>
                 <button class="btn small danger del-btn">Delete</button>
               </div>
               <div class="row-msg"></div>
@@ -484,6 +490,24 @@
         } catch (err) {
           msgEl.textContent = err.message;
           msgEl.className = 'row-msg err';
+        }
+      }
+
+      if (e.target.classList.contains('resend-btn')) {
+        e.target.disabled = true;
+        e.target.textContent = 'Sending…';
+        msgEl.textContent = '';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('PATCH', { id, action: 'resend' });
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner(data.success ? 'ok' : 'err', data.success ? 'Confirmation email sent.' : `Email failed: ${data.outcome}`);
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+          e.target.disabled = false;
+          e.target.textContent = 'Resend';
         }
       }
 
