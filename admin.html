@@ -167,6 +167,23 @@
       vertical-align: middle;
       font-size: 13.5px;
     }
+    /* Read-only display — the default for every row. Boxed inputs only
+       appear once a row is put into Edit mode (below). */
+    .guest-name { font-weight: 600; font-size: 14px; }
+    .guest-meta { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+    .guest-meta a { color: inherit; text-decoration: none; }
+    .guest-meta a:hover { text-decoration: underline; }
+    .muted { color: var(--ink-soft); }
+    .num-cell { font-weight: 700; font-size: 14.5px; }
+    .notes-cell { max-width: 220px; }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .2px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+    .pill.ok { background: #e7f4ea; color: var(--ok); }
+    .pill.bad { background: #fbeceb; color: var(--err); }
+
+    tr.editing { background: #fbf6ea; }
+    tr.editing td { vertical-align: top; }
+
     td input, td textarea {
       width: 100%;
       font: inherit;
@@ -176,17 +193,15 @@
       border: 1px solid #d8cdb8;
       background: #fffdf9;
     }
+    td input + input, td input + textarea { margin-top: 6px; }
     td input[type="number"] { width: 64px; }
     td textarea { resize: vertical; min-height: 32px; }
     .row-actions { display: flex; gap: 6px; white-space: nowrap; }
     .row-msg { font-size: 11.5px; margin-top: 3px; }
     .row-msg.err { color: var(--err); }
     .row-msg.ok { color: var(--ok); }
-    .created { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
+    .created { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
     .empty-row td { text-align: center; color: var(--ink-soft); padding: 22px 8px; }
-    .email-status { font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .email-status.ok { color: var(--ok); }
-    .email-status.bad { color: var(--err); }
 
     /* Below this width a data table is unreadable no matter how much you
        shrink it, so bookings render as stacked cards instead. */
@@ -216,7 +231,6 @@
         color: var(--ink-soft);
         margin-bottom: 3px;
       }
-      td.created, td.email-status { padding: 7px 0; }
       .row-actions { flex-wrap: wrap; }
       .row-actions button { flex: 1 1 auto; }
     }
@@ -302,9 +316,7 @@
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
+                <th>Guest</th>
                 <th>Places</th>
                 <th>Notes</th>
                 <th>Booked</th>
@@ -313,7 +325,7 @@
               </tr>
             </thead>
             <tbody id="bookingsBody">
-              <tr class="empty-row"><td colspan="8">Loading&hellip;</td></tr>
+              <tr class="empty-row"><td colspan="6">Loading&hellip;</td></tr>
             </tbody>
           </table>
         </div>
@@ -374,6 +386,8 @@
     const banner = document.getElementById('banner');
 
     let adminKey = '';
+    let currentBookings = [];
+    let editingId = null;
 
     function showBanner(kind, text) {
       banner.textContent = text;
@@ -411,38 +425,73 @@
       reservedInput.value = status.reserved;
     }
 
+    function pill(sent) {
+      return `<span class="pill ${sent ? 'ok' : 'bad'}">${sent ? 'Sent' : 'Not sent'}</span>`;
+    }
+
+    // Read-only by default — this is what made the list unreadable before:
+    // every field as a boxed input, all the time. Edit mode (below) is now
+    // opt-in per row.
+    function viewRowHTML(b) {
+      return `
+        <td data-label="Guest">
+          <div class="guest-name">${escapeHtml(b.name)}</div>
+          <div class="guest-meta">
+            <a href="mailto:${escapeAttr(b.email)}">${escapeHtml(b.email)}</a>${b.phone ? ' &middot; <a href="tel:' + escapeAttr(b.phone) + '">' + escapeHtml(b.phone) + '</a>' : ''}
+          </div>
+        </td>
+        <td data-label="Places" class="num-cell">${b.guests}</td>
+        <td data-label="Notes" class="notes-cell">${b.notes ? escapeHtml(b.notes) : '<span class="muted">—</span>'}</td>
+        <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
+        <td data-label="Confirmation">${pill(b.confirmationSent)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn small ghost edit-btn">Edit</button>
+            <button class="btn small ghost resend-btn">Resend</button>
+            <button class="btn small danger del-btn">Delete</button>
+          </div>
+          <div class="row-msg"></div>
+        </td>
+      `;
+    }
+
+    function editRowHTML(b) {
+      return `
+        <td data-label="Guest">
+          <input type="text" class="f-name" placeholder="Name" value="${escapeAttr(b.name)}" />
+          <input type="email" class="f-email" placeholder="Email" value="${escapeAttr(b.email)}" />
+          <input type="text" class="f-phone" placeholder="Phone" value="${escapeAttr(b.phone || '')}" />
+        </td>
+        <td data-label="Places"><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
+        <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
+        <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
+        <td data-label="Confirmation">${pill(b.confirmationSent)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn small save-btn">Save</button>
+            <button class="btn small ghost cancel-btn">Cancel</button>
+          </div>
+          <div class="row-msg"></div>
+        </td>
+      `;
+    }
+
     function renderBookings(bookings) {
+      currentBookings = bookings.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       bookingsBody.innerHTML = '';
-      if (!bookings.length) {
-        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="8">No bookings yet.</td></tr>';
+      if (!currentBookings.length) {
+        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="6">No bookings yet.</td></tr>';
         return;
       }
 
-      bookings
-        .slice()
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        .forEach((b) => {
-          const tr = document.createElement('tr');
-          tr.dataset.id = b.id;
-          tr.innerHTML = `
-            <td data-label="Name"><input type="text" class="f-name" value="${escapeAttr(b.name)}" /></td>
-            <td data-label="Email"><input type="email" class="f-email" value="${escapeAttr(b.email)}" /></td>
-            <td data-label="Phone"><input type="text" class="f-phone" value="${escapeAttr(b.phone || '')}" /></td>
-            <td data-label="Places"><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
-            <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
-            <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
-            <td class="email-status ${b.confirmationSent ? 'ok' : 'bad'}" data-label="Confirmation">${b.confirmationSent ? 'Sent' : 'Not sent'}</td>
-            <td>
-              <div class="row-actions">
-                <button class="btn small save-btn">Save</button>
-                <button class="btn small ghost resend-btn">Resend</button>
-                <button class="btn small danger del-btn">Delete</button>
-              </div>
-              <div class="row-msg"></div>
-            </td>
-          `;
-          bookingsBody.appendChild(tr);
-        });
+      currentBookings.forEach((b) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = b.id;
+        const editing = b.id === editingId;
+        if (editing) tr.classList.add('editing');
+        tr.innerHTML = editing ? editRowHTML(b) : viewRowHTML(b);
+        bookingsBody.appendChild(tr);
+      });
     }
 
     function escapeHtml(s) {
@@ -505,6 +554,18 @@
       const id = tr.dataset.id;
       const msgEl = tr.querySelector('.row-msg');
 
+      if (e.target.classList.contains('edit-btn')) {
+        editingId = id;
+        renderBookings(currentBookings);
+        return;
+      }
+
+      if (e.target.classList.contains('cancel-btn')) {
+        editingId = null;
+        renderBookings(currentBookings);
+        return;
+      }
+
       if (e.target.classList.contains('save-btn')) {
         const payload = {
           id,
@@ -518,6 +579,7 @@
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', payload);
+          editingId = null;
           renderStats(data);
           renderBookings(data.bookings || []);
           showBanner('ok', 'Booking updated.');
@@ -546,12 +608,13 @@
       }
 
       if (e.target.classList.contains('del-btn')) {
-        const name = tr.querySelector('.f-name').value || 'this booking';
-        if (!confirm(`Delete ${name}? This can't be undone.`)) return;
+        const booking = currentBookings.find((x) => x.id === id);
+        if (!confirm(`Delete ${booking ? booking.name : 'this booking'}? This can't be undone.`)) return;
         msgEl.textContent = 'Deleting…';
         msgEl.className = 'row-msg';
         try {
           const data = await api('DELETE', { id });
+          if (editingId === id) editingId = null;
           renderStats(data);
           renderBookings(data.bookings || []);
           showBanner('ok', 'Booking deleted.');
