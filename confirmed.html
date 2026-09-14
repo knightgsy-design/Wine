@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Confirmed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --wine: #5c1a2e;
+      --wine-dark: #3c0f1e;
+      --wine-light: #7d2740;
+      --gold: #c8a25c;
+      --gold-light: #e4cd9a;
+      --cream: #faf6ef;
+      --ink: #2b2320;
+      --ink-soft: #5a5049;
+      --line: #e6ddcc;
+      --ok: #3f7d4f;
+      --err: #a3372f;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--cream); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    body { padding: 0 16px; }
+    .wrap { max-width: 560px; margin: 0 auto; padding-block: 40px 60px; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; color: var(--wine-dark); margin: 0 0 8px; font-size: 26px; text-align: center; }
+    .sub { text-align: center; color: var(--ink-soft); font-size: 13.5px; margin: 0 0 28px; }
+
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 28px 26px; text-align: center; }
+
+    .spinner {
+      width: 30px; height: 30px; margin: 0 auto 16px;
+      border: 3px solid var(--line); border-top-color: var(--wine);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .stamp { display: inline-block; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; padding: 6px 16px; border-radius: 999px; margin-bottom: 14px; }
+    .stamp.ok { background: #e7f4ea; color: var(--ok); }
+    .stamp.err { background: #fbeceb; color: var(--err); }
+
+    .ref { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; color: var(--wine-dark); margin: 4px 0 18px; }
+
+    .summary {
+      text-align: left;
+      background: var(--cream);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 14px;
+      line-height: 1.9;
+      margin-bottom: 18px;
+    }
+
+    .hint { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+    .hint.tight { margin-top: 0; }
+    .warn { background: #fbeceb; border: 1px solid var(--err); color: #7a251f; border-radius: 10px; padding: 12px 15px; font-size: 13.5px; line-height: 1.6; text-align: left; margin-bottom: 12px; }
+
+    a.solid {
+      display: block; margin-top: 18px; text-decoration: none; text-align: center;
+      background: var(--wine); color: #fff; font-family: 'Playfair Display', serif; font-weight: 700;
+      padding: 12px 18px; border-radius: 12px;
+    }
+    a.solid:hover { background: var(--wine-light); }
+
+    footer { text-align: center; margin-top: 26px; font-size: 12.5px; color: var(--ink-soft); }
+    footer a { color: var(--wine); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 id="headline">Checking your payment&hellip;</h1>
+    <p class="sub">Wine Tasting Evening &middot; Saturday 26 September, 6.30pm &middot; The GYC</p>
+
+    <div class="card" id="body">
+      <div class="spinner"></div>
+      <p class="hint">One moment — we're confirming with SumUp. Don't close this page.</p>
+    </div>
+
+    <footer>
+      Questions or changes: <a id="mailTo" href="#">commodore@gyc.org.gg</a>
+    </footer>
+  </div>
+
+  <script>
+    const CLUB_EMAIL = 'commodore@gyc.org.gg';
+    const $ = (s) => document.querySelector(s);
+    const money = (n) => '£' + Number(n).toFixed(2);
+    const ref = new URLSearchParams(location.search).get('ref');
+
+    const mail = $('#mailTo');
+    mail.href = 'mailto:' + CLUB_EMAIL;
+
+    const esc = (t) => String(t ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+    function render(headline, html) {
+      $('#headline').textContent = headline;
+      $('#body').innerHTML = html;
+    }
+
+    if (!ref) {
+      render('Nothing to show', '<div class="warn">This page needs a booking reference. If you’ve just paid, check your email — the confirmation has your reference in it.</div>');
+    } else {
+      paidPoll();
+    }
+
+    function paidView(d) {
+      const summary = [
+        'Reference   ' + d.ref,
+        'Name        ' + d.name,
+        'Places      ' + d.guests,
+        d.notes ? 'Notes       ' + d.notes : '',
+        '',
+        'Paid        ' + money(d.total),
+      ].filter(Boolean).join('\n');
+
+      render(
+        'Paid. Your place' + (d.guests > 1 ? 's are' : ' is') + ' held.',
+        '<span class="stamp ok">Payment received</span>' +
+        '<div class="ref">' + esc(d.ref) + '</div>' +
+        '<div class="summary">' + esc(summary).replace(/\n/g, '<br>') + '</div>' +
+        (d.emailed
+          ? '<p class="hint tight">A confirmation is on its way to ' + esc(d.email) + '. See you there!</p>'
+          : '<div class="warn">Payment received and your place is held. The email confirmation didn’t go out — screenshot this page, and the club has your booking either way.</div>')
+      );
+    }
+
+    function failedView() {
+      render(
+        'Payment didn’t go through',
+        '<div class="warn">Nothing has been charged and no places are held.</div>' +
+        '<p class="hint">Start again and the booking will be waiting — or email ' + esc(CLUB_EMAIL) + ' and we’ll sort it out.</p>' +
+        '<a class="solid" href="/#book">Try again</a>'
+      );
+    }
+
+    let tries = 0;
+    async function paidPoll() {
+      tries++;
+      try {
+        const res = await fetch('/api/booking-status?ref=' + encodeURIComponent(ref));
+        const d = await res.json();
+
+        if (res.ok && d.status === 'paid') return paidView(d);
+        if (res.ok && d.status === 'failed') return failedView();
+        if (!res.ok) throw new Error(d.error || 'Not found');
+      } catch (e) {
+        if (tries > 3) {
+          return render(
+            'We can’t confirm this yet',
+            '<div class="warn">Your payment may still be going through. If SumUp took the money you’re booked — check your email, or send us reference <b>' + esc(ref) + '</b>.</div>' +
+            '<p class="hint">' + esc(CLUB_EMAIL) + '</p>'
+          );
+        }
+      }
+
+      if (tries < 15) return setTimeout(paidPoll, 2000);
+
+      render(
+        'Still waiting on SumUp',
+        '<div class="warn">This is taking longer than usual. Don’t pay again — quote reference <b>' + esc(ref) + '</b> and we’ll check it against the club’s SumUp account.</div>' +
+        '<p class="hint">' + esc(CLUB_EMAIL) + '</p>'
+      );
+    }
+  </script>
+</body>
+</html>

@@ -21,6 +21,7 @@
       --line: #e6ddcc;
       --ok: #3f7d4f;
       --err: #a3372f;
+      --warn: #8a6415;
       color-scheme: light;
     }
 
@@ -36,7 +37,7 @@
 
     body { padding: 0 16px 60px; }
 
-    .wrap { max-width: 980px; margin: 0 auto; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
 
     h1, h2 { font-family: 'Playfair Display', Georgia, serif; color: var(--wine-dark); margin: 0; }
 
@@ -129,16 +130,6 @@
     }
     .panel h2 { font-size: 17px; margin-bottom: 10px; }
 
-    .reserved-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .reserved-row input[type="number"] {
-      width: 90px;
-      font-size: 15px;
-      padding: 9px 10px;
-      border-radius: 8px;
-      border: 1px solid #d8cdb8;
-    }
-    .reserved-row .hint { font-size: 12.5px; color: var(--ink-soft); flex-basis: 100%; }
-
     .btn.small { font-size: 13px; padding: 8px 14px; border-radius: 8px; }
     .btn.danger { background: var(--err); }
     .btn.danger:hover { background: #832c26; }
@@ -173,18 +164,24 @@
     .guest-meta { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
     .guest-meta a { color: inherit; text-decoration: none; }
     .guest-meta a:hover { text-decoration: underline; }
+    .guest-ref { font-size: 11px; color: var(--ink-soft); margin-top: 2px; font-family: monospace; }
     .muted { color: var(--ink-soft); }
     .num-cell { font-weight: 700; font-size: 14.5px; }
-    .notes-cell { max-width: 220px; }
+    .notes-cell { max-width: 200px; }
+    .payment-method { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
 
     .pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .2px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
     .pill.ok { background: #e7f4ea; color: var(--ok); }
     .pill.bad { background: #fbeceb; color: var(--err); }
+    .pill.warn { background: #fbf2e0; color: var(--warn); }
+    .pill.muted { background: #eee7dc; color: var(--ink-soft); }
 
     tr.editing { background: #fbf6ea; }
     tr.editing td { vertical-align: top; }
+    tr.void-row { opacity: .55; }
+    tr.void-row .guest-name { text-decoration: line-through; }
 
-    td input, td textarea {
+    td input, td textarea, td select {
       width: 100%;
       font: inherit;
       font-size: 13.5px;
@@ -196,7 +193,7 @@
     td input + input, td input + textarea { margin-top: 6px; }
     td input[type="number"] { width: 64px; }
     td textarea { resize: vertical; min-height: 32px; }
-    .row-actions { display: flex; gap: 6px; white-space: nowrap; }
+    .row-actions { display: flex; gap: 6px; white-space: nowrap; flex-wrap: wrap; }
     .row-msg { font-size: 11.5px; margin-top: 3px; }
     .row-msg.err { color: var(--err); }
     .row-msg.ok { color: var(--ok); }
@@ -205,7 +202,7 @@
 
     /* Below this width a data table is unreadable no matter how much you
        shrink it, so bookings render as stacked cards instead. */
-    @media (max-width: 720px) {
+    @media (max-width: 760px) {
       .table-scroll { overflow-x: visible; }
       table, tbody, tr { display: block; width: 100%; }
       thead { display: none; }
@@ -231,7 +228,6 @@
         color: var(--ink-soft);
         margin-bottom: 3px;
       }
-      .row-actions { flex-wrap: wrap; }
       .row-actions button { flex: 1 1 auto; }
     }
 
@@ -239,21 +235,26 @@
 
     .add-form {
       display: grid;
-      grid-template-columns: repeat(5, 1fr) auto;
-      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
       margin-top: 14px;
       align-items: start;
     }
-    @media (max-width: 800px) { .add-form { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) { .add-form { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 480px) { .add-form { grid-template-columns: 1fr; } }
-    .add-form input, .add-form textarea {
+    .add-form input, .add-form textarea, .add-form select {
       font: inherit;
       font-size: 13.5px;
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #d8cdb8;
+      width: 100%;
     }
     .add-form label { font-size: 11px; color: var(--ink-soft); display: block; margin-bottom: 3px; }
+    .add-form .checkbox-field { display: flex; align-items: center; gap: 7px; padding-top: 22px; }
+    .add-form .checkbox-field input { width: auto; }
+    .add-form .checkbox-field label { margin: 0; font-size: 13px; color: var(--ink); }
+    .add-form .full { grid-column: 1 / -1; }
 
     .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
     .toolbar .actions { display: flex; gap: 8px; }
@@ -275,7 +276,7 @@
     <header class="top">
       <div class="eyebrow">Backstage</div>
       <h1>Wine Tasting Evening — Bookings</h1>
-      <p>Saturday 26 September, 6.30pm · The GYC · Live guest list &amp; capacity</p>
+      <p>Saturday 26 September, 6.30pm · The GYC · Live guest list &amp; payments</p>
     </header>
 
     <div id="gate">
@@ -289,19 +290,9 @@
     <div id="app">
       <div class="stats">
         <div class="stat"><div class="num" id="statCapacity">–</div><div class="lbl">Capacity</div></div>
-        <div class="stat"><div class="num" id="statReserved">–</div><div class="lbl">Reserved elsewhere</div></div>
-        <div class="stat"><div class="num" id="statOnline">–</div><div class="lbl">Booked online</div></div>
+        <div class="stat"><div class="num" id="statPaid">–</div><div class="lbl">Paid places</div></div>
+        <div class="stat"><div class="num" id="statAwaiting">–</div><div class="lbl">Awaiting payment</div></div>
         <div class="stat"><div class="num" id="statRemaining">–</div><div class="lbl">Remaining</div></div>
-      </div>
-
-      <div class="panel">
-        <h2>Reserved seats</h2>
-        <div class="reserved-row">
-          <input type="number" id="reservedInput" min="0" max="40" />
-          <button class="btn small" id="reservedSaveBtn">Update</button>
-          <span class="row-msg" id="reservedMsg"></span>
-          <span class="hint">Seats taken outside this form (e.g. booked in person or by phone). Total capacity is fixed at 40.</span>
-        </div>
       </div>
 
       <div class="panel">
@@ -318,26 +309,28 @@
               <tr>
                 <th>Guest</th>
                 <th>Places</th>
+                <th>Payment</th>
                 <th>Notes</th>
                 <th>Booked</th>
-                <th>Confirmation</th>
+                <th>Email</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="bookingsBody">
-              <tr class="empty-row"><td colspan="6">Loading&hellip;</td></tr>
+              <tr class="empty-row"><td colspan="7">Loading&hellip;</td></tr>
             </tbody>
           </table>
         </div>
 
-        <h2 style="font-size:15px; margin-top:22px;">Add a booking</h2>
+        <h2 style="font-size:15px; margin-top:22px;">Mark a payment taken over the counter</h2>
+        <p class="row-msg" style="margin:0 0 4px;color:var(--ink-soft);">For cash, card taken on a card reader, bank transfer or a complimentary place — this books the seats and marks them paid immediately.</p>
         <div class="add-form">
           <div>
             <label>Name</label>
             <input type="text" id="addName" />
           </div>
           <div>
-            <label>Email</label>
+            <label>Email <span class="muted">(optional)</span></label>
             <input type="email" id="addEmail" />
           </div>
           <div>
@@ -349,11 +342,32 @@
             <input type="number" id="addGuests" min="1" max="8" value="1" />
           </div>
           <div>
+            <label>Payment method</label>
+            <select id="addMethod">
+              <option value="cash">Cash</option>
+              <option value="card at the door">Card at the door</option>
+              <option value="bank transfer">Bank transfer</option>
+              <option value="complimentary">Complimentary</option>
+            </select>
+          </div>
+          <div>
+            <label>Taken by</label>
+            <input type="text" id="addBy" placeholder="Your name" />
+          </div>
+          <div>
+            <label>Amount collected £ <span class="muted">(blank = £30 × places)</span></label>
+            <input type="number" id="addAmount" step="0.01" min="0" placeholder="Calculated" />
+          </div>
+          <div class="full">
             <label>Notes</label>
             <input type="text" id="addNotes" />
           </div>
+          <div class="checkbox-field">
+            <input type="checkbox" id="addSend" />
+            <label for="addSend">Send a confirmation email (needs an email address)</label>
+          </div>
           <div style="align-self:end;">
-            <button class="btn small" id="addBtn" style="width:100%;">Add</button>
+            <button class="btn small" id="addBtn" style="width:100%;">Add &amp; mark paid</button>
           </div>
         </div>
 
@@ -373,13 +387,9 @@
     const gateError = document.getElementById('gateError');
 
     const statCapacity = document.getElementById('statCapacity');
-    const statReserved = document.getElementById('statReserved');
-    const statOnline = document.getElementById('statOnline');
+    const statPaid = document.getElementById('statPaid');
+    const statAwaiting = document.getElementById('statAwaiting');
     const statRemaining = document.getElementById('statRemaining');
-
-    const reservedInput = document.getElementById('reservedInput');
-    const reservedSaveBtn = document.getElementById('reservedSaveBtn');
-    const reservedMsg = document.getElementById('reservedMsg');
 
     const bookingsBody = document.getElementById('bookingsBody');
     const refreshBtn = document.getElementById('refreshBtn');
@@ -392,7 +402,7 @@
     function showBanner(kind, text) {
       banner.textContent = text;
       banner.className = 'banner show ' + kind;
-      setTimeout(() => { banner.className = 'banner'; }, 4000);
+      setTimeout(() => { banner.className = 'banner'; }, 5000);
     }
 
     function authHeaders() {
@@ -419,36 +429,57 @@
 
     function renderStats(status) {
       statCapacity.textContent = status.capacity;
-      statReserved.textContent = status.reserved;
-      statOnline.textContent = status.online;
+      statPaid.textContent = status.paid;
+      statAwaiting.textContent = status.awaitingPayment;
       statRemaining.textContent = status.remaining;
-      reservedInput.value = status.reserved;
     }
 
-    function pill(sent) {
+    function emailPill(sent) {
       return `<span class="pill ${sent ? 'ok' : 'bad'}">${sent ? 'Sent' : 'Not sent'}</span>`;
     }
 
-    // Read-only by default — this is what made the list unreadable before:
-    // every field as a boxed input, all the time. Edit mode (below) is now
-    // opt-in per row.
+    function money(n) {
+      return '£' + Number(n).toFixed(2);
+    }
+
+    function paymentCell(b) {
+      if (b.status === 'paid') {
+        const via = b.source === 'manual' ? (b.paymentMethod || 'manual') : 'online card';
+        return `<span class="pill ok">Paid ${money(b.total)}</span><span class="payment-method">${escapeHtml(via)}</span>`;
+      }
+      if (b.status === 'awaiting_payment') return '<span class="pill warn">Awaiting payment</span>';
+      if (b.status === 'failed') return '<span class="pill bad">Failed</span>';
+      if (b.status === 'void') return `<span class="pill muted">Void</span>${b.voidReason ? '<span class="payment-method">' + escapeHtml(b.voidReason) + '</span>' : ''}`;
+      return escapeHtml(b.status || '');
+    }
+
+    // Read-only by default — every field as a boxed input, all the time, is
+    // what made this hard to read. Edit mode (below) is opt-in per row.
     function viewRowHTML(b) {
+      const canRecheck = (b.status === 'awaiting_payment' || b.status === 'failed') && b.checkoutId;
+      const canDelete = b.status !== 'paid';
+      const canVoid = b.status !== 'void';
+
       return `
         <td data-label="Guest">
           <div class="guest-name">${escapeHtml(b.name)}</div>
           <div class="guest-meta">
-            <a href="mailto:${escapeAttr(b.email)}">${escapeHtml(b.email)}</a>${b.phone ? ' &middot; <a href="tel:' + escapeAttr(b.phone) + '">' + escapeHtml(b.phone) + '</a>' : ''}
+            ${b.email ? `<a href="mailto:${escapeAttr(b.email)}">${escapeHtml(b.email)}</a>` : '<span class="muted">no email</span>'}${b.phone ? ' &middot; <a href="tel:' + escapeAttr(b.phone) + '">' + escapeHtml(b.phone) + '</a>' : ''}
           </div>
+          <div class="guest-ref">${escapeHtml(b.ref)}</div>
         </td>
         <td data-label="Places" class="num-cell">${b.guests}</td>
+        <td data-label="Payment">${paymentCell(b)}</td>
         <td data-label="Notes" class="notes-cell">${b.notes ? escapeHtml(b.notes) : '<span class="muted">—</span>'}</td>
         <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
-        <td data-label="Confirmation">${pill(b.confirmationSent)}</td>
+        <td data-label="Email">${b.email ? emailPill(b.confirmationSent) : '<span class="muted">n/a</span>'}</td>
         <td>
           <div class="row-actions">
             <button class="btn small ghost edit-btn">Edit</button>
-            <button class="btn small ghost resend-btn">Resend</button>
-            <button class="btn small danger del-btn">Delete</button>
+            ${canRecheck ? '<button class="btn small ghost recheck-btn">Recheck</button>' : ''}
+            ${b.email ? '<button class="btn small ghost resend-btn">Resend</button>' : ''}
+            ${canVoid ? '<button class="btn small danger void-btn">Void</button>' : ''}
+            ${canDelete ? '<button class="btn small ghost delete-btn">Delete</button>' : ''}
           </div>
           <div class="row-msg"></div>
         </td>
@@ -459,13 +490,14 @@
       return `
         <td data-label="Guest">
           <input type="text" class="f-name" placeholder="Name" value="${escapeAttr(b.name)}" />
-          <input type="email" class="f-email" placeholder="Email" value="${escapeAttr(b.email)}" />
+          <input type="email" class="f-email" placeholder="Email" value="${escapeAttr(b.email || '')}" />
           <input type="text" class="f-phone" placeholder="Phone" value="${escapeAttr(b.phone || '')}" />
         </td>
         <td data-label="Places"><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
+        <td data-label="Payment">${paymentCell(b)}</td>
         <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
         <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
-        <td data-label="Confirmation">${pill(b.confirmationSent)}</td>
+        <td data-label="Email">${b.email ? emailPill(b.confirmationSent) : '<span class="muted">n/a</span>'}</td>
         <td>
           <div class="row-actions">
             <button class="btn small save-btn">Save</button>
@@ -477,18 +509,19 @@
     }
 
     function renderBookings(bookings) {
-      currentBookings = bookings.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      currentBookings = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       bookingsBody.innerHTML = '';
       if (!currentBookings.length) {
-        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="6">No bookings yet.</td></tr>';
+        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings yet.</td></tr>';
         return;
       }
 
       currentBookings.forEach((b) => {
         const tr = document.createElement('tr');
-        tr.dataset.id = b.id;
-        const editing = b.id === editingId;
+        tr.dataset.id = b.ref;
+        const editing = b.ref === editingId;
         if (editing) tr.classList.add('editing');
+        if (b.status === 'void') tr.classList.add('void-row');
         tr.innerHTML = editing ? editRowHTML(b) : viewRowHTML(b);
         bookingsBody.appendChild(tr);
       });
@@ -533,21 +566,6 @@
 
     refreshBtn.addEventListener('click', () => loadAll().catch((e) => showBanner('err', e.message)));
 
-    reservedSaveBtn.addEventListener('click', async () => {
-      reservedMsg.className = 'row-msg';
-      reservedMsg.textContent = '';
-      try {
-        const data = await api('PATCH', { reserved: Number(reservedInput.value) });
-        renderStats(data);
-        renderBookings(data.bookings || []);
-        reservedMsg.textContent = 'Saved';
-        reservedMsg.className = 'row-msg ok';
-      } catch (e) {
-        reservedMsg.textContent = e.message;
-        reservedMsg.className = 'row-msg err';
-      }
-    });
-
     bookingsBody.addEventListener('click', async (e) => {
       const tr = e.target.closest('tr');
       if (!tr || !tr.dataset.id) return;
@@ -587,6 +605,7 @@
           msgEl.textContent = err.message;
           msgEl.className = 'row-msg err';
         }
+        return;
       }
 
       if (e.target.classList.contains('resend-btn')) {
@@ -605,10 +624,48 @@
           e.target.disabled = false;
           e.target.textContent = 'Resend';
         }
+        return;
       }
 
-      if (e.target.classList.contains('del-btn')) {
-        const booking = currentBookings.find((x) => x.id === id);
+      if (e.target.classList.contains('recheck-btn')) {
+        e.target.disabled = true;
+        e.target.textContent = 'Checking…';
+        msgEl.textContent = '';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('PATCH', { id, action: 'recheck' });
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner('ok', `Checked against SumUp — now ${data.status}.`);
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+          e.target.disabled = false;
+          e.target.textContent = 'Recheck';
+        }
+        return;
+      }
+
+      if (e.target.classList.contains('void-btn')) {
+        const booking = currentBookings.find((x) => x.ref === id);
+        const reason = prompt(`Void ${booking ? booking.name : 'this booking'}? This keeps the record but frees the seats.\n\nReason (optional):`);
+        if (reason === null) return;
+        msgEl.textContent = 'Voiding…';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('PATCH', { id, action: 'void', reason });
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner('ok', 'Booking voided.');
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+        }
+        return;
+      }
+
+      if (e.target.classList.contains('delete-btn')) {
+        const booking = currentBookings.find((x) => x.ref === id);
         if (!confirm(`Delete ${booking ? booking.name : 'this booking'}? This can't be undone.`)) return;
         msgEl.textContent = 'Deleting…';
         msgEl.className = 'row-msg';
@@ -631,21 +688,35 @@
         email: document.getElementById('addEmail').value.trim(),
         phone: document.getElementById('addPhone').value.trim(),
         guests: Number(document.getElementById('addGuests').value),
+        paymentMethod: document.getElementById('addMethod').value,
+        addedBy: document.getElementById('addBy').value.trim(),
+        amountPounds: document.getElementById('addAmount').value,
         notes: document.getElementById('addNotes').value.trim(),
+        sendEmail: document.getElementById('addSend').checked,
       };
-      if (!payload.name || !payload.email) {
-        showBanner('err', 'Name and email are required.');
+      if (!payload.name) {
+        showBanner('err', 'A name is required.');
         return;
       }
+      const btn = document.getElementById('addBtn');
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
       try {
         const data = await api('POST', payload);
         renderStats(data);
         renderBookings(data.bookings || []);
-        ['addName', 'addEmail', 'addPhone', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
+        ['addName', 'addEmail', 'addPhone', 'addBy', 'addAmount', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
         document.getElementById('addGuests').value = 1;
-        showBanner('ok', 'Booking added.');
+        document.getElementById('addSend').checked = false;
+        const extra = data.emailed === true ? ' and emailed.'
+          : (data.emailed && data.emailed !== 'skipped') ? ` (email: ${data.emailed}).`
+          : '.';
+        showBanner('ok', `Added as ${data.booking.ref}${extra}`);
       } catch (err) {
         showBanner('err', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add & mark paid';
       }
     });
 

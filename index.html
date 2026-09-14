@@ -481,7 +481,7 @@
           <span class="label" id="remainingLabel">checking availability&hellip;</span>
         </div>
         <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
-        <div class="avail-note">Maximum 40 places for the evening.</div>
+        <div class="avail-note">Maximum 40 places for the evening. Payment is taken securely online (via SumUp) to confirm your place.</div>
       </div>
 
       <div class="card" style="margin-top:14px;">
@@ -513,7 +513,7 @@
 
           <div class="form-msg" id="formMsg"></div>
 
-          <button type="submit" class="submit" id="submitBtn">Book My Place — £30pp</button>
+          <button type="submit" class="submit" id="submitBtn">Book &amp; Pay — £30pp</button>
         </form>
 
         <div class="full-msg" id="fullMsg">
@@ -530,7 +530,8 @@
   </div>
 
   <script>
-    const API = '/api/booking';
+    const STATUS_API = '/api/booking';
+    const CHECKOUT_API = '/api/create-checkout';
     const remainingCountEl = document.getElementById('remainingCount');
     const remainingLabelEl = document.getElementById('remainingLabel');
     const barFillEl = document.getElementById('barFill');
@@ -588,7 +589,7 @@
 
     async function loadStatus() {
       try {
-        const res = await fetch(API);
+        const res = await fetch(STATUS_API);
         const data = await res.json();
         applyStatus(data);
       } catch (e) {
@@ -614,35 +615,31 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Booking…';
+      submitBtn.textContent = 'Opening payment…';
 
       try {
-        const res = await fetch(API, {
+        const res = await fetch(CHECKOUT_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         const data = await res.json();
 
-        if (!res.ok) {
+        if (!res.ok || !data.paymentUrl) {
           showMsg('err', data.error || 'Sorry, something went wrong. Please try again.');
           if (typeof data.remaining === 'number') applyStatus(data);
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Book My Place — £30pp';
+          submitBtn.textContent = 'Book & Pay — £30pp';
           return;
         }
 
-        const emailNote = data.emailed === true
-          ? ' A confirmation email is on its way to you.'
-          : ' (We couldn\'t send a confirmation email just now, but your place is booked.)';
-        showMsg('ok', `You're booked in, ${payload.name}! (${payload.guests} place${payload.guests > 1 ? 's' : ''}).${emailNote} Payment of £30 per head is due on the night.`);
-        form.reset();
-        applyStatus(data);
-        submitBtn.textContent = 'Book My Place — £30pp';
+        // Straight to SumUp. Nothing is confirmed until they've paid —
+        // the /confirmed page picks up from here.
+        window.location.href = data.paymentUrl;
       } catch (err) {
         showMsg('err', 'Network error — please check your connection and try again.');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Book My Place — £30pp';
+        submitBtn.textContent = 'Book & Pay — £30pp';
       }
     });
 
