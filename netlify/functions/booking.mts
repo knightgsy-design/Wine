@@ -112,9 +112,16 @@ export default async (req: Request, context: Context) => {
       return Response.json({ error: "Amount is not a valid number." }, { status: 400 });
     }
 
+    // "Card at the door" isn't money in hand yet — it's a promise to pay
+    // when they arrive. Every other method here (cash, bank transfer,
+    // complimentary) is collected at the moment the admin enters it, so
+    // only this one stays pending. The seats are still held either way
+    // (capacityStatus counts awaiting_payment same as paid).
+    const isPending = paymentMethod === "card at the door";
+
     const booking: Booking = {
       ref: makeRef(true),
-      status: "paid",
+      status: isPending ? "awaiting_payment" : "paid",
       name,
       email,
       phone: phone || undefined,
@@ -125,11 +132,16 @@ export default async (req: Request, context: Context) => {
       paymentMethod,
       addedBy: addedBy || undefined,
       createdAt: new Date().toISOString(),
-      paidAt: new Date().toISOString(),
+      paidAt: isPending ? undefined : new Date().toISOString(),
     };
 
+    // A "payment received" email would be wrong to send before it's
+    // actually been paid — that goes out from the "Mark as paid" action
+    // instead, once the door's actually taken the card.
     let emailed: boolean | string = "skipped";
-    if (body.sendEmail && email) {
+    if (isPending) {
+      emailed = "pending-payment";
+    } else if (body.sendEmail && email) {
       const result = await sendConfirmations(booking);
       booking.confirmationSent = result.ok;
       emailed = result.ok ? true : result.reason ?? "failed";
@@ -184,6 +196,34 @@ export default async (req: Request, context: Context) => {
       const updated = await settle({ id: booking.checkoutId, ref: booking.ref });
       const status = capacityStatus(await listBookings());
       return Response.json({ success: true, status: updated?.status ?? booking.status, ...status, bookings: await listBookings() });
+    }
+
+    // Marking an over-the-counter "awaiting payment" booking (card at the
+    // door) as actually paid, once the door's taken it. Only meaningful for
+    // manual bookings — an online SumUp one gets marked paid by settle(),
+    // never by hand.
+    if (body.action === "mark-paid") {
+      if (booking.source !== "manual") {
+        return Response.json({ error: "Only an over-the-counter booking can be marked paid by hand." }, { status: 400 });
+      }
+      if (booking.status === "paid") {
+        return Response.json({ error: "Already marked paid." }, { status: 400 });
+      }
+      booking.status = "paid";
+      booking.paidAt = new Date().toISOString();
+
+      let emailed: boolean | string = "skipped";
+      if (body.sendEmail !== false && booking.email) {
+        const result = await sendConfirmations(booking);
+        booking.confirmationSent = result.ok;
+        emailed = result.ok ? true : result.reason ?? "failed";
+      } else if (body.sendEmail !== false && !booking.email) {
+        emailed = "no-email";
+      }
+
+      await writeBooking(booking);
+      const status = capacityStatus(await listBookings());
+      return Response.json({ success: true, booking, emailed, ...status, bookings: await listBookings() });
     }
 
     // Voiding — deliberately not a delete for a paid booking. A paid

@@ -133,6 +133,8 @@
     .btn.small { font-size: 13px; padding: 8px 14px; border-radius: 8px; }
     .btn.danger { background: var(--err); }
     .btn.danger:hover { background: #832c26; }
+    .mark-paid-btn { background: var(--ok); }
+    .mark-paid-btn:hover { background: #2f6a3d; }
     .btn.ghost {
       background: transparent;
       color: var(--wine);
@@ -323,7 +325,7 @@
         </div>
 
         <h2 style="font-size:15px; margin-top:22px;">Mark a payment taken over the counter</h2>
-        <p class="row-msg" style="margin:0 0 4px;color:var(--ink-soft);">For cash, card taken on a card reader, bank transfer or a complimentary place — this books the seats and marks them paid immediately.</p>
+        <p class="row-msg" style="margin:0 0 4px;color:var(--ink-soft);">Cash, a card reader payment, bank transfer or a complimentary place books the seats and marks them paid immediately. "Card at the door" books the seats too, but leaves them pending until you come back and hit <strong>Mark as paid</strong> once it's actually been taken.</p>
         <div class="add-form">
           <div>
             <label>Name</label>
@@ -447,7 +449,10 @@
         const via = b.source === 'manual' ? (b.paymentMethod || 'manual') : 'online card';
         return `<span class="pill ok">Paid ${money(b.total)}</span><span class="payment-method">${escapeHtml(via)}</span>`;
       }
-      if (b.status === 'awaiting_payment') return '<span class="pill warn">Awaiting payment</span>';
+      if (b.status === 'awaiting_payment') {
+        const method = b.paymentMethod ? `<span class="payment-method">${escapeHtml(b.paymentMethod)}</span>` : '';
+        return `<span class="pill warn">Awaiting payment</span>${method}`;
+      }
       if (b.status === 'failed') return '<span class="pill bad">Failed</span>';
       if (b.status === 'void') return `<span class="pill muted">Void</span>${b.voidReason ? '<span class="payment-method">' + escapeHtml(b.voidReason) + '</span>' : ''}`;
       return escapeHtml(b.status || '');
@@ -457,6 +462,7 @@
     // what made this hard to read. Edit mode (below) is opt-in per row.
     function viewRowHTML(b) {
       const canRecheck = (b.status === 'awaiting_payment' || b.status === 'failed') && b.checkoutId;
+      const canMarkPaid = b.status === 'awaiting_payment' && b.source === 'manual';
       const canDelete = b.status !== 'paid';
       const canVoid = b.status !== 'void';
 
@@ -476,6 +482,7 @@
         <td>
           <div class="row-actions">
             <button class="btn small ghost edit-btn">Edit</button>
+            ${canMarkPaid ? '<button class="btn small mark-paid-btn">Mark as paid</button>' : ''}
             ${canRecheck ? '<button class="btn small ghost recheck-btn">Recheck</button>' : ''}
             ${b.email ? '<button class="btn small ghost resend-btn">Resend</button>' : ''}
             ${canVoid ? '<button class="btn small danger void-btn">Void</button>' : ''}
@@ -584,6 +591,27 @@
         return;
       }
 
+      if (e.target.classList.contains('mark-paid-btn')) {
+        const booking = currentBookings.find((x) => x.ref === id);
+        if (!confirm(`Mark ${booking ? booking.name : 'this booking'} as paid? Only do this once the payment's actually been taken.`)) return;
+        e.target.disabled = true;
+        e.target.textContent = 'Marking…';
+        msgEl.textContent = '';
+        msgEl.className = 'row-msg';
+        try {
+          const data = await api('PATCH', { id, action: 'mark-paid', sendEmail: true });
+          renderStats(data);
+          renderBookings(data.bookings || []);
+          showBanner('ok', 'Marked as paid.');
+        } catch (err) {
+          msgEl.textContent = err.message;
+          msgEl.className = 'row-msg err';
+          e.target.disabled = false;
+          e.target.textContent = 'Mark as paid';
+        }
+        return;
+      }
+
       if (e.target.classList.contains('save-btn')) {
         const payload = {
           id,
@@ -682,6 +710,28 @@
       }
     });
 
+    const addMethodSelect = document.getElementById('addMethod');
+    const addSendCheckbox = document.getElementById('addSend');
+    const addBtnEl = document.getElementById('addBtn');
+
+    function isPendingMethod() {
+      return addMethodSelect.value === 'card at the door';
+    }
+
+    function addBtnLabel() {
+      return isPendingMethod() ? 'Add (pending payment)' : 'Add & mark paid';
+    }
+
+    function updateAddFormForMethod() {
+      const pending = isPendingMethod();
+      addSendCheckbox.disabled = pending;
+      if (pending) addSendCheckbox.checked = false;
+      addBtnEl.textContent = addBtnLabel();
+    }
+
+    addMethodSelect.addEventListener('change', updateAddFormForMethod);
+    updateAddFormForMethod();
+
     document.getElementById('addBtn').addEventListener('click', async () => {
       const payload = {
         name: document.getElementById('addName').value.trim(),
@@ -707,8 +757,9 @@
         renderBookings(data.bookings || []);
         ['addName', 'addEmail', 'addPhone', 'addBy', 'addAmount', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
         document.getElementById('addGuests').value = 1;
-        document.getElementById('addSend').checked = false;
-        const extra = data.emailed === true ? ' and emailed.'
+        addSendCheckbox.checked = false;
+        const extra = data.emailed === 'pending-payment' ? ' — seats held, pending payment at the door.'
+          : data.emailed === true ? ' and emailed.'
           : (data.emailed && data.emailed !== 'skipped') ? ` (email: ${data.emailed}).`
           : '.';
         showBanner('ok', `Added as ${data.booking.ref}${extra}`);
@@ -716,7 +767,7 @@
         showBanner('err', err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Add & mark paid';
+        btn.textContent = addBtnLabel();
       }
     });
 
