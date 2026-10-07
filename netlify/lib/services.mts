@@ -1,4 +1,5 @@
 import { CURRENCY, type Booking } from "./booking.mts";
+import { getEvent } from "./events.mts";
 import { sendConfirmations as sendEmailConfirmations } from "./email.mts";
 
 const SUMUP = "https://api.sumup.com/v0.1";
@@ -29,7 +30,7 @@ export async function createCheckout(b: Booking) {
       amount: b.total,
       currency: CURRENCY,
       merchant_code: merchant,
-      description: `Wine Tasting Evening · ${b.guests} place${b.guests > 1 ? "s" : ""} · ${b.name}`,
+      description: `${getEvent(b.event)?.title ?? "GYC Event"} · ${b.guests} place${b.guests > 1 ? "s" : ""} · ${b.name}`,
       // SumUp calls this when the payment status changes — our source of truth.
       return_url: `${siteUrl()}/api/sumup-webhook`,
       // Where the payer lands in their browser afterwards.

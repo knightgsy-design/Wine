@@ -1,5 +1,6 @@
 import type { Config, Context } from "@netlify/functions";
-import { readBooking } from "../lib/booking.mts";
+import { mealSummary, readBooking } from "../lib/booking.mts";
+import { getEvent } from "../lib/events.mts";
 import { settle } from "../lib/settle.mts";
 
 /**
@@ -19,8 +20,13 @@ export default async (req: Request, _context: Context) => {
     booking = (await settle({ id: booking.checkoutId, ref: booking.ref })) || booking;
   }
 
+  const ev = getEvent(booking.event);
   return Response.json({
     ref: booking.ref,
+    event: ev?.title ?? "GYC Event",
+    when: ev?.when ?? "",
+    where: ev?.where ?? "",
+    meals: ev ? mealSummary(booking, ev) : "",
     status: booking.status,
     name: booking.name,
     email: booking.email,

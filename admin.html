@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wine Tasting — Booking Admin</title>
+  <title>GYC Events — Booking Admin</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --wine: #5c1a2e;
-      --wine-dark: #3c0f1e;
-      --wine-light: #7d2740;
-      --gold: #c8a25c;
-      --gold-light: #e4cd9a;
-      --cream: #faf6ef;
-      --ink: #2b2320;
-      --ink-soft: #5a5049;
-      --line: #e6ddcc;
+      --wine: #0f2a43;
+      --wine-dark: #0a1c2e;
+      --wine-light: #17405f;
+      --gold: #c9a24a;
+      --gold-light: #e0c27a;
+      --cream: #f3f6f9;
+      --ink: #14222e;
+      --ink-soft: #4a5b69;
+      --line: #d9e1e8;
       --ok: #3f7d4f;
       --err: #a3372f;
       --warn: #8a6415;
@@ -140,7 +140,7 @@
       color: var(--wine);
       border: 1px solid var(--wine);
     }
-    .btn.ghost:hover { background: #fbf2ea; }
+    .btn.ghost:hover { background: #e9f0f6; }
     .btn:disabled { background: #b9aa9a; cursor: not-allowed; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 6px; }
@@ -178,7 +178,7 @@
     .pill.warn { background: #fbf2e0; color: var(--warn); }
     .pill.muted { background: #eee7dc; color: var(--ink-soft); }
 
-    tr.editing { background: #fbf6ea; }
+    tr.editing { background: #eef3f8; }
     tr.editing td { vertical-align: top; }
     tr.void-row { opacity: .55; }
     tr.void-row .guest-name { text-decoration: line-through; }
@@ -190,7 +190,7 @@
       padding: 6px 8px;
       border-radius: 7px;
       border: 1px solid #d8cdb8;
-      background: #fffdf9;
+      background: #fbfdff;
     }
     td input + input, td input + textarea { margin-top: 6px; }
     td input[type="number"] { width: 64px; }
@@ -213,7 +213,7 @@
         border-radius: 12px;
         padding: 12px 14px 14px;
         margin-bottom: 12px;
-        background: #fffdf9;
+        background: #fbfdff;
       }
       td {
         display: block;
@@ -258,6 +258,14 @@
     .add-form .checkbox-field label { margin: 0; font-size: 13px; color: var(--ink); }
     .add-form .full { grid-column: 1 / -1; }
 
+    .evtabs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+    .evtab { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 16px; font: 600 13.5px 'Inter', sans-serif; cursor: pointer; }
+    .evtab:hover { border-color: var(--wine); }
+    .evtab[aria-pressed="true"] { background: var(--wine); color: #fff; border-color: var(--wine); }
+    .evtab small { opacity: .7; font-weight: 500; margin-left: 4px; }
+    .meal-edit { display: grid; gap: 5px; }
+    .meal-edit label { font-size: 11.5px; color: var(--ink-soft); display: grid; grid-template-columns: 1fr 56px; gap: 8px; align-items: center; }
+    .meal-line { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
     .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
     .toolbar .actions { display: flex; gap: 8px; }
 
@@ -277,8 +285,8 @@
   <div class="wrap">
     <header class="top">
       <div class="eyebrow">Backstage</div>
-      <h1>Wine Tasting Evening — Bookings</h1>
-      <p>Saturday 26 September, 6.30pm · The GYC · Live guest list &amp; payments</p>
+      <h1>GYC Events — Bookings</h1>
+      <p>Guernsey Yacht Club · Live guest lists, capacity &amp; payments</p>
     </header>
 
     <div id="gate">
@@ -290,6 +298,7 @@
     </div>
 
     <div id="app">
+      <nav class="evtabs" id="evTabs" aria-label="Event"></nav>
       <div class="stats">
         <div class="stat"><div class="num" id="statCapacity">–</div><div class="lbl">Capacity</div></div>
         <div class="stat"><div class="num" id="statPaid">–</div><div class="lbl">Paid places</div></div>
@@ -339,10 +348,11 @@
             <label>Phone</label>
             <input type="text" id="addPhone" />
           </div>
-          <div>
+          <div id="addPlacesBox">
             <label>Places</label>
             <input type="number" id="addGuests" min="1" max="8" value="1" />
           </div>
+          <div id="addMealsBox" class="meal-edit" style="display:none"></div>
           <div>
             <label>Payment method</label>
             <select id="addMethod">
@@ -357,7 +367,7 @@
             <input type="text" id="addBy" placeholder="Your name" />
           </div>
           <div>
-            <label>Amount collected £ <span class="muted">(blank = £30 × places)</span></label>
+            <label>Amount collected £ <span class="muted" id="addAmountHint">(blank = standard price × places)</span></label>
             <input type="number" id="addAmount" step="0.01" min="0" placeholder="Calculated" />
           </div>
           <div class="full">
@@ -381,6 +391,9 @@
   <script>
     const API = '/api/booking';
     const STORAGE_KEY = 'wineAdminKey';
+    let eventsData = {};
+    let selectedEvent = null;
+    let allBookings = [];
 
     const gate = document.getElementById('gate');
     const app = document.getElementById('app');
@@ -429,11 +442,88 @@
              d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
     }
 
-    function renderStats(status) {
-      statCapacity.textContent = status.capacity;
-      statPaid.textContent = status.paid;
-      statAwaiting.textContent = status.awaitingPayment;
-      statRemaining.textContent = status.remaining;
+    function currentEvent() { return eventsData[selectedEvent] || null; }
+
+    function renderStats() {
+      const st = currentEvent();
+      if (!st) return;
+      statCapacity.textContent = st.capacity;
+      statPaid.textContent = st.paid;
+      statAwaiting.textContent = st.awaitingPayment;
+      statRemaining.textContent = st.remaining;
+    }
+
+    function renderTabs() {
+      const el = document.getElementById('evTabs');
+      el.innerHTML = '';
+      Object.values(eventsData).forEach((ev) => {
+        const count = allBookings.filter((b) => (b.event || 'wine') === ev.event).length;
+        const btn = document.createElement('button');
+        btn.className = 'evtab';
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', String(ev.event === selectedEvent));
+        btn.innerHTML = escapeHtml(ev.title) + (ev.open ? '' : ' <small>(closed)</small>') + `<small>${count}</small>`;
+        btn.addEventListener('click', () => { selectedEvent = ev.event; editingId = null; renderAll(); });
+        el.appendChild(btn);
+      });
+    }
+
+    function renderAll(data) {
+      if (data) {
+        eventsData = data.events || eventsData;
+        allBookings = data.bookings || allBookings;
+      }
+      if (!selectedEvent || !eventsData[selectedEvent]) {
+        selectedEvent = (Object.values(eventsData).find((e) => e.open) || Object.values(eventsData)[0] || {}).event || null;
+      }
+      renderTabs();
+      renderStats();
+      renderBookings();
+      renderAddForm();
+    }
+
+    function mealName(id) {
+      const m = (currentEvent()?.menu || []).find((x) => x.id === id);
+      return m ? m.name : id;
+    }
+    function mealLine(b) {
+      if (!b.meals || !b.meals.length) return '';
+      const counts = {};
+      b.meals.forEach((id) => { counts[mealName(id)] = (counts[mealName(id)] || 0) + 1; });
+      return Object.entries(counts).map(([n, c]) => c + ' × ' + n).join(', ');
+    }
+    function mealCountInputs(prefix, meals) {
+      const menu = currentEvent()?.menu || [];
+      return menu.map((m) => {
+        const n = (meals || []).filter((x) => x === m.id).length;
+        return `<label>${escapeHtml(m.name)}<input type="number" min="0" max="10" value="${n}" class="${prefix}" data-meal="${m.id}" /></label>`;
+      }).join('');
+    }
+    function readMealCounts(root, cls) {
+      const meals = [];
+      root.querySelectorAll('.' + cls).forEach((inp) => {
+        for (let i = 0; i < (Number(inp.value) || 0); i++) meals.push(inp.dataset.meal);
+      });
+      return meals;
+    }
+
+    function renderAddForm() {
+      const st = currentEvent();
+      if (!st) return;
+      const hasMenu = !!st.menu;
+      document.getElementById('addPlacesBox').style.display = hasMenu ? 'none' : '';
+      const box = document.getElementById('addMealsBox');
+      box.style.display = hasMenu ? '' : 'none';
+      if (hasMenu && !box.dataset.for) {
+        box.innerHTML = '<label style="font-size:11px;display:block">Meals (one per place)</label>' + mealCountInputs('add-meal', []);
+      }
+      box.dataset.for = hasMenu ? st.event : '';
+      if (hasMenu && box.dataset.rendered !== st.event) {
+        box.innerHTML = '<label style="font-size:11px;display:block">Meals (one per place)</label>' + mealCountInputs('add-meal', []);
+        box.dataset.rendered = st.event;
+      }
+      document.getElementById('addGuests').max = st.maxPerBooking;
+      document.getElementById('addAmountHint').textContent = `(blank = £${st.price} × places)`;
     }
 
     function emailPill(sent) {
@@ -472,6 +562,7 @@
           <div class="guest-meta">
             ${b.email ? `<a href="mailto:${escapeAttr(b.email)}">${escapeHtml(b.email)}</a>` : '<span class="muted">no email</span>'}${b.phone ? ' &middot; <a href="tel:' + escapeAttr(b.phone) + '">' + escapeHtml(b.phone) + '</a>' : ''}
           </div>
+          ${mealLine(b) ? `<div class="meal-line">🍽️ ${escapeHtml(mealLine(b))}</div>` : ''}
           <div class="guest-ref">${escapeHtml(b.ref)}</div>
         </td>
         <td data-label="Places" class="num-cell">${b.guests}</td>
@@ -500,7 +591,9 @@
           <input type="email" class="f-email" placeholder="Email" value="${escapeAttr(b.email || '')}" />
           <input type="text" class="f-phone" placeholder="Phone" value="${escapeAttr(b.phone || '')}" />
         </td>
-        <td data-label="Places"><input type="number" class="f-guests" min="1" max="8" value="${b.guests}" /></td>
+        <td data-label="Places">${currentEvent()?.menu
+          ? `<div class="meal-edit">${mealCountInputs('f-meal', b.meals)}</div>`
+          : `<input type="number" class="f-guests" min="1" max="${currentEvent()?.maxPerBooking || 8}" value="${b.guests}" />`}</td>
         <td data-label="Payment">${paymentCell(b)}</td>
         <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
         <td class="created" data-label="Booked">${fmtDate(b.createdAt)}</td>
@@ -515,11 +608,13 @@
       `;
     }
 
-    function renderBookings(bookings) {
-      currentBookings = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    function renderBookings() {
+      currentBookings = allBookings
+        .filter((b) => (b.event || 'wine') === selectedEvent)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       bookingsBody.innerHTML = '';
       if (!currentBookings.length) {
-        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings yet.</td></tr>';
+        bookingsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings for this event yet.</td></tr>';
         return;
       }
 
@@ -543,8 +638,7 @@
 
     async function loadAll() {
       const data = await api('GET');
-      renderStats(data);
-      renderBookings(data.bookings || []);
+      renderAll(data);
     }
 
     async function unlock() {
@@ -581,13 +675,13 @@
 
       if (e.target.classList.contains('edit-btn')) {
         editingId = id;
-        renderBookings(currentBookings);
+        renderBookings();
         return;
       }
 
       if (e.target.classList.contains('cancel-btn')) {
         editingId = null;
-        renderBookings(currentBookings);
+        renderBookings();
         return;
       }
 
@@ -600,8 +694,7 @@
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', { id, action: 'mark-paid', sendEmail: true });
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner('ok', 'Marked as paid.');
         } catch (err) {
           msgEl.textContent = err.message;
@@ -618,16 +711,20 @@
           name: tr.querySelector('.f-name').value.trim(),
           email: tr.querySelector('.f-email').value.trim(),
           phone: tr.querySelector('.f-phone').value.trim(),
-          guests: Number(tr.querySelector('.f-guests').value),
           notes: tr.querySelector('.f-notes').value.trim(),
         };
+        if (currentEvent()?.menu) {
+          payload.meals = readMealCounts(tr, 'f-meal');
+          payload.guests = payload.meals.length;
+        } else {
+          payload.guests = Number(tr.querySelector('.f-guests').value);
+        }
         msgEl.textContent = 'Saving…';
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', payload);
           editingId = null;
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner('ok', 'Booking updated.');
         } catch (err) {
           msgEl.textContent = err.message;
@@ -643,8 +740,7 @@
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', { id, action: 'resend' });
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner(data.success ? 'ok' : 'err', data.success ? 'Confirmation email sent.' : `Email failed: ${data.outcome}`);
         } catch (err) {
           msgEl.textContent = err.message;
@@ -662,8 +758,7 @@
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', { id, action: 'recheck' });
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner('ok', `Checked against SumUp — now ${data.status}.`);
         } catch (err) {
           msgEl.textContent = err.message;
@@ -682,8 +777,7 @@
         msgEl.className = 'row-msg';
         try {
           const data = await api('PATCH', { id, action: 'void', reason });
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner('ok', 'Booking voided.');
         } catch (err) {
           msgEl.textContent = err.message;
@@ -700,8 +794,7 @@
         try {
           const data = await api('DELETE', { id });
           if (editingId === id) editingId = null;
-          renderStats(data);
-          renderBookings(data.bookings || []);
+          renderAll(data);
           showBanner('ok', 'Booking deleted.');
         } catch (err) {
           msgEl.textContent = err.message;
@@ -737,6 +830,7 @@
         name: document.getElementById('addName').value.trim(),
         email: document.getElementById('addEmail').value.trim(),
         phone: document.getElementById('addPhone').value.trim(),
+        event: selectedEvent,
         guests: Number(document.getElementById('addGuests').value),
         paymentMethod: document.getElementById('addMethod').value,
         addedBy: document.getElementById('addBy').value.trim(),
@@ -748,15 +842,19 @@
         showBanner('err', 'A name is required.');
         return;
       }
+      if (currentEvent()?.menu) {
+        payload.meals = readMealCounts(document.getElementById('addMealsBox'), 'add-meal');
+        payload.guests = payload.meals.length;
+      }
       const btn = document.getElementById('addBtn');
       btn.disabled = true;
       btn.textContent = 'Adding…';
       try {
         const data = await api('POST', payload);
-        renderStats(data);
-        renderBookings(data.bookings || []);
+        renderAll(data);
         ['addName', 'addEmail', 'addPhone', 'addBy', 'addAmount', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
         document.getElementById('addGuests').value = 1;
+        document.querySelectorAll('.add-meal').forEach((i) => (i.value = 0));
         addSendCheckbox.checked = false;
         const extra = data.emailed === 'pending-payment' ? ' — seats held, pending payment at the door.'
           : data.emailed === true ? ' and emailed.'

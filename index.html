@@ -1,649 +1,466 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wine Tasting Evening — 26 September</title>
-  <meta name="description" content="A wine tasting evening at the GYC on Saturday 26th September, 6.30pm. Ten wines, charcuterie &amp; cheese, £30 per head. Book your place." />
+  <title>GYC Events — Guernsey Yacht Club</title>
+  <meta name="description" content="Book your place at Guernsey Yacht Club events: Halloween Buffet Supper (31 Oct) and the Gin & Rum Tasting at Wheadon's Bunker (14 Nov)." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --wine: #5c1a2e;
-      --wine-dark: #3c0f1e;
-      --wine-light: #7d2740;
-      --gold: #c8a25c;
-      --gold-light: #e4cd9a;
-      --cream: #faf6ef;
-      --ink: #2b2320;
-      --ink-soft: #5a5049;
-      --line: #e6ddcc;
-      --ok: #3f7d4f;
+      --navy: #0f2a43;
+      --navy-dark: #0a1c2e;
+      --navy-mid: #17405f;
+      --gold: #e0c27a;
+      --gold-deep: #c9a24a;
+      --paper: #f3f6f9;
+      --ink: #14222e;
+      --ink-soft: #4a5b69;
+      --line: #d9e1e8;
+      --ok: #2f7d4a;
       --err: #a3372f;
+      /* per-event accent, overridden on each panel */
+      --accent: var(--gold-deep);
+      --accent-dark: #8a6d28;
+      --hero-from: var(--navy-dark);
+      --hero-to: var(--navy-mid);
       color-scheme: light;
     }
-
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; margin: 0; }
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: var(--cream);
-      color: var(--ink);
-      font-family: 'Inter', system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
+    /* ---------------- Intro ---------------- */
+    #intro {
+      position: fixed; inset: 0; z-index: 100;
+      background: linear-gradient(180deg, #050f1b 0%, #0f2a43 62%, #17405f 100%);
+      overflow: hidden; display: grid; place-items: center;
+      transition: opacity .9s ease, visibility .9s;
     }
+    #intro.done { opacity: 0; visibility: hidden; }
+    #intro svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .star { fill: #fff; animation: twinkle 3s ease-in-out infinite; }
+    .star:nth-child(3n) { animation-delay: .7s; }
+    .star:nth-child(3n+1) { animation-delay: 1.6s; }
+    @keyframes twinkle { 0%,100% { opacity: .15; } 50% { opacity: .9; } }
+    .moon { animation: moonrise 3.2s ease-out both; }
+    @keyframes moonrise { from { transform: translateY(70px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .wave-a { animation: drift 9s linear infinite; }
+    .wave-b { animation: drift 6s linear infinite reverse; }
+    .wave-c { animation: drift 4.5s linear infinite; }
+    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-800px); } }
+    .boat { animation: sail 5.4s cubic-bezier(.35,.1,.35,1) .3s both; }
+    @keyframes sail { from { transform: translateX(-180px); } to { transform: translateX(980px); } }
+    .boat-bob { transform-origin: 90px 120px; animation: bob 1.6s ease-in-out infinite; }
+    @keyframes bob { 0%,100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-5px); } }
+    .intro-text { position: relative; text-align: center; color: #fff; padding: 0 20px; margin-top: -8vh; }
+    .intro-text .club { font-family: 'Inter'; font-size: clamp(11px, 2.4vw, 15px); letter-spacing: .5em; text-transform: uppercase; color: var(--gold); opacity: 0; animation: rise .9s ease 1.1s forwards; }
+    .intro-text .big { font-family: 'Playfair Display', serif; font-weight: 800; font-size: clamp(64px, 22vw, 150px); line-height: 1; letter-spacing: .04em; margin-top: 10px; }
+    .intro-text .big .line { white-space: nowrap; }
+    .intro-text .big .line:last-child { font-size: .62em; letter-spacing: .12em; color: var(--gold); margin-top: 4px; }
+    .intro-text .big span { display: inline-block; opacity: 0; transform: translateY(40px) scale(.9); animation: letter .7s cubic-bezier(.2,.9,.3,1.2) forwards; }
+    .intro-text .tag { margin-top: 16px; font-size: clamp(13px, 3vw, 17px); color: #c6d4e0; opacity: 0; animation: rise .9s ease 2.9s forwards; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes letter { to { opacity: 1; transform: none; } }
+    #skip { position: absolute; right: 18px; bottom: 18px; z-index: 2; background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 8px 18px; font: 600 13px 'Inter'; cursor: pointer; backdrop-filter: blur(4px); }
+    #skip:hover { background: rgba(255,255,255,.22); }
 
-    body {
-      padding: 0 16px;
-    }
+    /* ---------------- Page chrome ---------------- */
+    header.site { background: var(--navy); color: #fff; padding: 20px 16px 0; }
+    .site-inner { max-width: 880px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 18px; }
+    .brand svg { width: 38px; height: 38px; flex: none; }
+    .brand b { font-family: 'Playfair Display', serif; font-size: 22px; display: block; line-height: 1.1; }
+    .brand span { font-size: 11.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); }
 
-    .wrap {
-      max-width: 760px;
-      margin: 0 auto;
-    }
+    nav.tabs { position: sticky; top: 0; z-index: 20; background: var(--navy); display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 0; margin: 0 -16px; scrollbar-width: none; box-shadow: 0 6px 14px -10px rgba(0,0,0,.6); }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 1 0 auto; min-width: 150px; text-align: left; cursor: pointer; border: 0; background: rgba(255,255,255,.07); color: #c6d4e0; padding: 13px 18px 12px; border-radius: 12px 12px 0 0; font: inherit; border-bottom: 4px solid transparent; transition: background .2s, color .2s; }
+    .tab:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .tab .t { display: block; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; color: inherit; }
+    .tab .d { display: block; font-size: 12px; margin-top: 2px; opacity: .85; }
+    .tab[aria-selected="true"] { background: var(--paper); color: var(--ink); border-bottom-color: var(--tab-accent, var(--gold-deep)); }
+    .tab[data-event="halloween"] { --tab-accent: #e8731a; }
+    .tab[data-event="gin-rum"] { --tab-accent: #2a9d8f; }
 
-    h1, h2, h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      color: var(--wine-dark);
-      margin: 0;
-    }
+    main { max-width: 880px; margin: 0 auto; padding: 0 16px 60px; }
+    .panel[hidden] { display: none; }
+    .panel[data-event="halloween"] { --accent: #e8731a; --accent-dark: #b4560d; --hero-from: #150a1c; --hero-to: #4a1f3a; }
+    .panel[data-event="gin-rum"] { --accent: #2a9d8f; --accent-dark: #1d6f65; --hero-from: #0a2a2c; --hero-to: #14515a; }
 
-    a { color: var(--wine); }
+    .hero { margin: 0 -16px; padding: 38px 24px 34px; background: radial-gradient(circle at 85% 10%, rgba(255,255,255,.12), transparent 45%), linear-gradient(150deg, var(--hero-from), var(--hero-to)); color: #fff; text-align: center; border-radius: 0 0 26px 26px; position: relative; overflow: hidden; }
+    .hero .eyebrow { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); font-weight: 700; filter: brightness(1.45); }
+    .hero h2 { font-size: clamp(30px, 7vw, 46px); line-height: 1.1; margin: 10px 0 8px; }
+    .hero .sub { color: rgba(255,255,255,.82); font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.55; }
+    .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-top: 20px; }
+    .chip { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 8px 15px; font-size: 13.5px; font-weight: 600; }
+    .price-badge { display: inline-block; margin-top: 20px; background: var(--accent); color: #fff; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; padding: 10px 28px; border-radius: 999px; box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+    .deco { position: absolute; font-size: 54px; opacity: .13; user-select: none; pointer-events: none; }
 
-    /* ---------- Hero / Poster ---------- */
-    .hero {
-      background:
-        radial-gradient(circle at 20% 15%, rgba(200,162,92,0.18), transparent 45%),
-        linear-gradient(160deg, var(--wine-dark) 0%, var(--wine) 55%, var(--wine-light) 100%);
-      border-radius: 0 0 28px 28px;
-      padding: 44px 28px 36px;
-      margin: 0 -16px;
-      color: var(--cream);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-top: 18px; }
+    .card h3 { font-size: 18px; margin-bottom: 12px; color: var(--navy); }
+    .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+    .facts li { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; }
+    .facts .i { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, white); font-size: 16px; }
+    .callout { margin-top: 16px; padding: 13px 16px; border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 9%, white); border-radius: 8px; font-size: 14px; line-height: 1.55; }
 
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        radial-gradient(circle, rgba(250,246,239,0.14) 1px, transparent 1.4px);
-      background-size: 22px 22px;
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    .avail { margin-top: 18px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; }
+    .avail-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+    .avail .count { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 28px; color: var(--navy); }
+    .avail .label { font-size: 13px; color: var(--ink-soft); }
+    .bar { margin-top: 12px; height: 10px; border-radius: 999px; background: #e4ebf1; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .5s ease; }
 
-    .hero-inner { position: relative; }
-
-    .eyebrow {
-      font-size: 12.5px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--gold-light);
-      font-weight: 600;
-      margin-bottom: 14px;
-    }
-
-    .hero h1 {
-      color: #fff;
-      font-size: clamp(32px, 7vw, 52px);
-      line-height: 1.08;
-      letter-spacing: 0.3px;
-    }
-
-    .hero .sub {
-      margin-top: 10px;
-      font-size: clamp(15px, 3vw, 18px);
-      color: var(--gold-light);
-      font-weight: 500;
-    }
-
-    .glass-divider {
-      margin: 22px auto;
-      width: 72px;
-      height: 2px;
-      background: var(--gold);
-      opacity: 0.8;
-    }
-
-    .hero-meta {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 6px;
-    }
-
-    .pill {
-      background: rgba(250,246,239,0.12);
-      border: 1px solid rgba(228,205,154,0.45);
-      color: var(--cream);
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 13.5px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
-      white-space: nowrap;
-    }
-
-    .price-badge {
-      display: inline-block;
-      margin-top: 22px;
-      background: var(--gold);
-      color: var(--wine-dark);
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 20px;
-      padding: 10px 26px;
-      border-radius: 999px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-    }
-
-    /* ---------- Sections ---------- */
-    section { margin-top: 34px; }
-
-    .section-title {
-      font-size: 22px;
-      margin-bottom: 4px;
-    }
-
-    .section-title .small {
-      display: block;
-      font-family: 'Inter', sans-serif;
-      font-size: 12.5px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--gold);
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 22px;
-    }
-
-    .highlights {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-      margin-top: 16px;
-    }
-
-    @media (max-width: 480px) {
-      .highlights { grid-template-columns: 1fr; }
-    }
-
-    .highlight {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-    }
-
-    .highlight .icon { font-size: 22px; }
-
-    .highlight h3 {
-      font-size: 15.5px;
-      margin: 8px 0 4px;
-    }
-
-    .highlight p {
-      margin: 0;
-      font-size: 13.5px;
-      color: var(--ink-soft);
-      line-height: 1.5;
-    }
-
-    .hosts {
-      margin-top: 16px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .host-row {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      font-size: 14.5px;
-      line-height: 1.55;
-    }
-
-    .host-row .tag {
-      flex: none;
-      font-weight: 700;
-      color: var(--wine);
-      font-family: 'Playfair Display', serif;
-      font-size: 15px;
-      min-width: 84px;
-    }
-
-    .notice {
-      margin-top: 16px;
-      background: #fbf2e3;
-      border: 1px solid var(--gold);
-      border-left-width: 4px;
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-size: 13.5px;
-      line-height: 1.6;
-      color: #6b4a13;
-    }
-
-    .notice strong { color: #4d3405; }
-
-    /* ---------- Booking ---------- */
-    .avail-card {
-      background: linear-gradient(135deg, #fff, #fdfaf3);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 20px 22px;
-    }
-
-    .avail-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .avail-top .count {
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 26px;
-      color: var(--wine-dark);
-    }
-
-    .avail-top .label {
-      font-size: 13px;
-      color: var(--ink-soft);
-    }
-
-    .bar-track {
-      margin-top: 12px;
-      height: 10px;
-      border-radius: 999px;
-      background: #eee3d1;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--wine), var(--gold));
-      width: 0%;
-      transition: width 0.4s ease;
-    }
-
-    .avail-note {
-      margin-top: 10px;
-      font-size: 12.5px;
-      color: var(--ink-soft);
-    }
-
-    form.booking-form {
-      margin-top: 18px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-
-    .field label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .field .hint {
-      font-weight: 400;
-      color: var(--ink-soft);
-    }
-
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 480px) {
-      .two-col { grid-template-columns: 1fr; }
-    }
-
-    input, select, textarea {
-      font-family: inherit;
-      font-size: 15px;
-      padding: 11px 13px;
-      border-radius: 10px;
-      border: 1px solid #d8cdb8;
-      background: #fff;
-      color: var(--ink);
-      width: 100%;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: 2px solid var(--gold);
-      outline-offset: 1px;
-      border-color: var(--gold);
-    }
-
+    form { display: grid; gap: 14px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 600; }
+    .hint { font-weight: 400; color: var(--ink-soft); }
+    input, select, textarea { font: inherit; font-size: 15px; padding: 11px 13px; border: 1px solid #c8d3dd; border-radius: 10px; background: #fff; color: var(--ink); width: 100%; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
     textarea { resize: vertical; min-height: 64px; }
+    .meals { display: grid; gap: 10px; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, white); border: 1px dashed color-mix(in srgb, var(--accent) 55%, white); }
+    .meals > b { font-size: 13px; }
+    .meal-row { display: grid; grid-template-columns: 80px 1fr; gap: 10px; align-items: center; font-size: 13.5px; }
+    button.pay { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 15px 20px; font: 700 17px 'Playfair Display', serif; cursor: pointer; transition: filter .15s, transform .1s; }
+    button.pay:hover { filter: brightness(.92); }
+    button.pay:active { transform: translateY(1px); }
+    button.pay:disabled { background: #a9b6c2; cursor: not-allowed; }
+    .secure { font-size: 12.5px; color: var(--ink-soft); text-align: center; line-height: 1.5; margin: 0; }
+    .msg { display: none; border-radius: 10px; padding: 12px 15px; font-size: 14px; line-height: 1.5; background: #fbeceb; border: 1px solid var(--err); color: #7a251f; }
+    .msg.show { display: block; }
+    .full { display: none; text-align: center; padding: 18px; color: var(--ink-soft); font-size: 15px; }
+    .full.show { display: block; }
 
-    button.submit {
-      margin-top: 4px;
-      background: var(--wine);
-      color: #fff;
-      border: none;
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 17px;
-      padding: 14px 20px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease;
+    footer.site { text-align: center; padding: 28px 16px 40px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+    footer.site a { color: var(--navy-mid); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .wave-a, .wave-b, .wave-c, .boat-bob, .star, .moon { animation: none; }
+      .boat { animation: none; transform: translateX(380px); }
+      .intro-text .club, .intro-text .tag, .intro-text .big .line { white-space: nowrap; }
+    .intro-text .big .line:last-child { font-size: .62em; letter-spacing: .12em; color: var(--gold); margin-top: 4px; }
+    .intro-text .big span { animation: none; opacity: 1; transform: none; }
+      html { scroll-behavior: auto; }
     }
-
-    button.submit:hover { background: var(--wine-light); }
-    button.submit:active { transform: translateY(1px); }
-
-    button.submit:disabled {
-      background: #b9aa9a;
-      cursor: not-allowed;
-    }
-
-    .form-msg {
-      display: none;
-      border-radius: 10px;
-      padding: 13px 15px;
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .form-msg.show { display: block; }
-
-    .form-msg.ok {
-      background: #eaf5ec;
-      border: 1px solid var(--ok);
-      color: #245331;
-    }
-
-    .form-msg.err {
-      background: #fbeceb;
-      border: 1px solid var(--err);
-      color: #7a251f;
-    }
-
-    .full-msg {
-      display: none;
-      text-align: center;
-      padding: 18px;
-      font-size: 14.5px;
-      color: var(--ink-soft);
-    }
-
-    .full-msg.show { display: block; }
-
-    footer {
-      margin: 40px 0 28px;
-      text-align: center;
-      font-size: 12.5px;
-      color: var(--ink-soft);
-      line-height: 1.7;
-    }
-
-    footer .glass-divider { margin-bottom: 16px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
 
-    <div class="hero">
-      <div class="hero-inner">
-        <div class="eyebrow">An Evening of Fine Wine &amp; Good Company</div>
-        <h1>Wine Tasting<br />Evening</h1>
-        <div class="sub">Ten wines &middot; Red, White &amp; Ros&eacute;</div>
-        <div class="glass-divider"></div>
-        <div class="hero-meta">
-          <span class="pill">📅 Saturday 26 September</span>
-          <span class="pill">🕡 6.30pm</span>
-          <span class="pill">📍 The GYC</span>
-        </div>
-        <div class="price-badge">£30 per head</div>
-      </div>
+  <!-- ============ Animated intro ============ -->
+  <div id="intro" aria-hidden="true">
+    <svg class="scene" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c5379"/><stop offset="1" stop-color="#08203a"/></linearGradient>
+        <radialGradient id="moonglow"><stop offset="0" stop-color="#fff6d6" stop-opacity=".55"/><stop offset="1" stop-color="#fff6d6" stop-opacity="0"/></radialGradient>
+      </defs>
+      <g id="stars"></g>
+      <g class="moon"><circle cx="640" cy="90" r="90" fill="url(#moonglow)"/><circle cx="640" cy="90" r="30" fill="#fff6d6"/></g>
+      <rect y="300" width="800" height="150" fill="url(#sea)"/>
+      <g class="boat" transform="translate(0,0)"><g transform="translate(0,222)"><g class="boat-bob">
+        <path d="M20 118 H160 L142 146 H44 Z" fill="#f4efe2"/>
+        <path d="M20 118 H160" stroke="#c9a24a" stroke-width="4"/>
+        <rect x="88" y="14" width="4" height="106" fill="#e8e0cc"/>
+        <path d="M94 18 L94 112 L152 112 Z" fill="#ffffff"/>
+        <path d="M86 28 L86 112 L36 112 Z" fill="#e0c27a"/>
+        <path d="M88 14 l16 6 l-16 6 z" fill="#c0392b"/>
+      </g></g></g>
+      <g class="wave-c" opacity=".55"><path d="M0 330 q50 -18 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 V450 H0 Z" fill="#2b6d94"/></g>
+      <g class="wave-b" opacity=".8"><path d="M0 350 q50 -22 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 V450 H0 Z" fill="#164a6e"/></g>
+      <g class="wave-a"><path d="M0 378 q50 -26 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 V450 H0 Z" fill="#0b2e4b"/></g>
+    </svg>
+    <div class="intro-text">
+      <div class="club">Guernsey Yacht Club</div>
+      <div class="big" id="bigword" aria-label="GYC Events"></div>
+      <div class="tag">Good company. Good events. Book your place.</div>
     </div>
-
-    <section>
-      <div class="card">
-        <div class="section-title">
-          <span class="small">The Evening</span>
-          On the Tasting Table
-        </div>
-        <div class="highlights">
-          <div class="highlight">
-            <div class="icon">🍷</div>
-            <h3>10 Wines to Taste</h3>
-            <p>A curated collection spanning red, white &amp; ros&eacute;.</p>
-          </div>
-          <div class="highlight">
-            <div class="icon">🧀</div>
-            <h3>Charcuterie &amp; Cheese</h3>
-            <p>A generous board to accompany every glass.</p>
-          </div>
-          <div class="highlight">
-            <div class="icon">🛒</div>
-            <h3>Wholesale Wine Offer</h3>
-            <p>Buy any of the night's wines at wholesale prices.</p>
-          </div>
-          <div class="highlight">
-            <div class="icon">🎉</div>
-            <h3>Fun &amp; Entertainment</h3>
-            <p>A relaxed, sociable evening for all.</p>
-          </div>
-        </div>
-
-        <div class="hosts">
-          <div class="host-row">
-            <span class="tag">Wines by</span>
-            <span>Richard Allisette, from <strong>The Grape Vine</strong></span>
-          </div>
-          <div class="host-row">
-            <span class="tag">Presented by</span>
-            <span>Robin Fuller</span>
-          </div>
-        </div>
-
-        <div class="notice">
-          <strong>Wholesale purchase window:</strong> after the tasting, you're welcome to buy any of the featured
-          wines at wholesale prices. This offer is only available for <strong>48 hours after the event</strong> —
-          it closes at close of business on <strong>Monday 28th September</strong>.
-        </div>
-      </div>
-    </section>
-
-    <section id="book">
-      <div class="section-title">
-        <span class="small">Reserve Your Place</span>
-        Book Now
-      </div>
-
-      <div class="avail-card" style="margin-top:14px;">
-        <div class="avail-top">
-          <span class="count" id="remainingCount">–</span>
-          <span class="label" id="remainingLabel">checking availability&hellip;</span>
-        </div>
-        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
-        <div class="avail-note">Maximum 40 places for the evening. Payment is taken securely online (via SumUp) to confirm your place.</div>
-      </div>
-
-      <div class="card" style="margin-top:14px;">
-        <form class="booking-form" id="bookingForm">
-          <div class="two-col">
-            <div class="field">
-              <label for="name">Full name</label>
-              <input type="text" id="name" name="name" autocomplete="name" required />
-            </div>
-            <div class="field">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" autocomplete="email" required />
-            </div>
-          </div>
-          <div class="two-col">
-            <div class="field">
-              <label for="phone">Phone <span class="hint">(optional)</span></label>
-              <input type="tel" id="phone" name="phone" autocomplete="tel" />
-            </div>
-            <div class="field">
-              <label for="guests">Number of places</label>
-              <select id="guests" name="guests" required></select>
-            </div>
-          </div>
-          <div class="field">
-            <label for="notes">Dietary requirements / notes <span class="hint">(optional)</span></label>
-            <textarea id="notes" name="notes" placeholder="e.g. vegetarian, allergies&hellip;"></textarea>
-          </div>
-
-          <div class="form-msg" id="formMsg"></div>
-
-          <button type="submit" class="submit" id="submitBtn">Book &amp; Pay — £30pp</button>
-        </form>
-
-        <div class="full-msg" id="fullMsg">
-          This event is now fully booked. Please contact the organiser if you'd like to be added to a waiting list.
-        </div>
-      </div>
-    </section>
-
-    <footer>
-      <div class="glass-divider"></div>
-      Wine Tasting Evening &middot; Saturday 26 September, 6.30pm &middot; The GYC<br />
-      Wines supplied by Richard Allisette (The Grape Vine) &middot; Presented by Robin Fuller
-    </footer>
+    <button id="skip" type="button">Skip intro ›</button>
   </div>
 
+  <!-- ============ Site ============ -->
+  <header class="site">
+    <div class="site-inner">
+      <div class="brand">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="none" stroke="#e0c27a" stroke-width="2"/><path d="M19 7 V30 H8 Z" fill="#fff"/><path d="M21 11 V30 H33 Z" fill="#e0c27a"/><path d="M6 33 q7 -4 14 0 t14 0" fill="none" stroke="#e0c27a" stroke-width="2"/></svg>
+        <div><b>GYC Events</b><span>Guernsey Yacht Club</span></div>
+      </div>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Choose an event"></nav>
+    </div>
+  </header>
+
+  <main id="panels"></main>
+
+  <footer class="site">
+    Guernsey Yacht Club &middot; Payment is taken securely online (SumUp) and confirms your place.<br />
+    Questions? <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a>
+  </footer>
+
   <script>
-    const STATUS_API = '/api/booking';
-    const CHECKOUT_API = '/api/create-checkout';
-    const remainingCountEl = document.getElementById('remainingCount');
-    const remainingLabelEl = document.getElementById('remainingLabel');
-    const barFillEl = document.getElementById('barFill');
-    const guestsSelect = document.getElementById('guests');
-    const form = document.getElementById('bookingForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const formMsg = document.getElementById('formMsg');
-    const fullMsg = document.getElementById('fullMsg');
+    /* ---------- Event content (display copy only — the server owns price & capacity) ---------- */
+    const EVENTS = [
+      {
+        id: 'halloween',
+        tab: 'Halloween Buffet Supper',
+        short: '31 Oct · from 6.30pm',
+        eyebrow: 'Saturday 31st October 2026',
+        title: 'Halloween Buffet Supper',
+        sub: 'A spooky supper at the club — and a prize for the best costume.',
+        price: 20,
+        maxPerBooking: 10,
+        deco: ['🎃', '🕸️', '🦇'],
+        facts: [
+          ['📅', '<b>Saturday 31st October 2026</b>'],
+          ['🕡', 'From <b>6.30pm</b>'],
+          ['📍', 'Guernsey Yacht Club'],
+          ['🍽️', 'Buffet supper'],
+          ['🎭', '<b>Dress to impress!</b> (optional)'],
+          ['🏆', 'Prize for the <b>best costume</b>'],
+        ],
+        callout: null,
+      },
+      {
+        id: 'gin-rum',
+        tab: 'Gin & Rum Tasting',
+        short: '14 Nov · 5.30pm',
+        eyebrow: 'Saturday 14th November 2026',
+        title: 'Gin &amp; Rum Tasting',
+        sub: "Come and enjoy the many flavours now offered by Wheadon's.",
+        price: 35,
+        maxPerBooking: 8,
+        deco: ['🥃', '🍸', '🍹'],
+        menu: [
+          ['stroganoff', 'Beef Stroganoff with veg rice'],
+          ['cauliflower', 'Cauliflower Steak (V)'],
+        ],
+        facts: [
+          ['📅', '<b>Saturday 14th November 2026</b>'],
+          ['🕠', 'Starts <b>5.30pm</b>'],
+          ['📍', "<b>Wheadon's Bunker</b>, Castle Emplacement"],
+          ['🍽️', 'Dinner included — choose <b>Beef Stroganoff with veg rice</b> or <b>Cauliflower Steak (V)</b>'],
+          ['🎟️', '<b>Limited to 24 tickets</b>'],
+        ],
+        callout: 'Discounted deals will be available on the night on a range of gins, vodkas and rums.',
+      },
+    ];
 
-    const MAX_PER_BOOKING = 8;
-    let currentRemaining = null;
+    const $ = (s, r = document) => r.querySelector(s);
+    const money = (n) => '£' + Number(n).toFixed(2).replace(/\.00$/, '');
 
-    function showMsg(kind, text) {
-      formMsg.textContent = text;
-      formMsg.className = 'form-msg show ' + kind;
-    }
-
-    function clearMsg() {
-      formMsg.className = 'form-msg';
-      formMsg.textContent = '';
-    }
-
-    function populateGuestOptions(remaining) {
-      const max = Math.max(0, Math.min(MAX_PER_BOOKING, remaining));
-      guestsSelect.innerHTML = '';
-      for (let i = 1; i <= max; i++) {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        opt.textContent = i + (i === 1 ? ' place' : ' places');
-        guestsSelect.appendChild(opt);
-      }
-    }
-
-    function applyStatus(status) {
-      const capacity = status.capacity ?? 40;
-      const remaining = Math.max(0, status.remaining ?? 0);
-      currentRemaining = remaining;
-      const takenPct = Math.min(100, Math.round(((capacity - remaining) / capacity) * 100));
-
-      barFillEl.style.width = takenPct + '%';
-      remainingCountEl.textContent = remaining;
-      remainingLabelEl.textContent = remaining === 1 ? 'place left of ' + capacity : 'places left of ' + capacity;
-
-      populateGuestOptions(remaining);
-
-      if (remaining <= 0) {
-        form.style.display = 'none';
-        fullMsg.classList.add('show');
-      } else {
-        form.style.display = 'grid';
-        fullMsg.classList.remove('show');
-        submitBtn.disabled = false;
-      }
-    }
-
-    async function loadStatus() {
-      try {
-        const res = await fetch(STATUS_API);
-        const data = await res.json();
-        applyStatus(data);
-      } catch (e) {
-        remainingLabelEl.textContent = 'availability unavailable — please try refreshing';
-      }
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearMsg();
-
-      const payload = {
-        name: document.getElementById('name').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        guests: Number(guestsSelect.value),
-        notes: document.getElementById('notes').value.trim(),
-      };
-
-      if (!payload.name || !payload.email || !payload.guests) {
-        showMsg('err', 'Please fill in your name, email and number of places.');
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Opening payment…';
-
-      try {
-        const res = await fetch(CHECKOUT_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+    /* ---------- Intro ---------- */
+    (function intro() {
+      const el = $('#intro');
+      const big = $('#bigword');
+      let n = 0;
+      ['GYC', 'EVENTS'].forEach((word) => {
+        const line = document.createElement('div');
+        line.className = 'line';
+        [...word].forEach((ch) => {
+          const s = document.createElement('span');
+          s.textContent = ch;
+          s.style.animationDelay = (1.5 + n++ * 0.09) + 's';
+          line.appendChild(s);
         });
-        const data = await res.json();
-
-        if (!res.ok || !data.paymentUrl) {
-          showMsg('err', data.error || 'Sorry, something went wrong. Please try again.');
-          if (typeof data.remaining === 'number') applyStatus(data);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Book & Pay — £30pp';
-          return;
-        }
-
-        // Straight to SumUp. Nothing is confirmed until they've paid —
-        // the /confirmed page picks up from here.
-        window.location.href = data.paymentUrl;
-      } catch (err) {
-        showMsg('err', 'Network error — please check your connection and try again.');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Book & Pay — £30pp';
+        big.appendChild(line);
+      });
+      const stars = $('#stars');
+      for (let i = 0; i < 46; i++) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('class', 'star');
+        c.setAttribute('cx', (Math.random() * 800).toFixed(0));
+        c.setAttribute('cy', (Math.random() * 250).toFixed(0));
+        c.setAttribute('r', (Math.random() * 1.4 + .4).toFixed(1));
+        stars.appendChild(c);
       }
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let seen = false;
+      try { seen = sessionStorage.getItem('gycIntro') === '1'; } catch (e) {}
+      let timer;
+      const finish = () => {
+        clearTimeout(timer);
+        el.classList.add('done');
+        try { sessionStorage.setItem('gycIntro', '1'); } catch (e) {}
+        document.body.style.overflow = '';
+        setTimeout(() => el.remove(), 1000);
+      };
+      if (seen) { el.remove(); return; }
+      document.body.style.overflow = 'hidden';
+      $('#skip').addEventListener('click', finish);
+      el.addEventListener('click', finish);
+      timer = setTimeout(finish, reduced ? 1400 : 5600);
+    })();
+
+    /* ---------- Tabs & panels ---------- */
+    const tabsEl = $('#tabs');
+    const panelsEl = $('#panels');
+
+    EVENTS.forEach((ev) => {
+      const tab = document.createElement('button');
+      tab.className = 'tab';
+      tab.type = 'button';
+      tab.dataset.event = ev.id;
+      tab.setAttribute('role', 'tab');
+      tab.innerHTML = `<span class="t">${ev.tab}</span><span class="d">${ev.short}</span>`;
+      tab.addEventListener('click', () => select(ev.id, true));
+      tabsEl.appendChild(tab);
+
+      const panel = document.createElement('section');
+      panel.className = 'panel';
+      panel.dataset.event = ev.id;
+      panel.hidden = true;
+      panel.setAttribute('role', 'tabpanel');
+      panel.innerHTML = `
+        <div class="hero">
+          <span class="deco" style="left:6%;top:18%">${ev.deco[0]}</span>
+          <span class="deco" style="right:8%;top:12%;font-size:70px">${ev.deco[1]}</span>
+          <span class="deco" style="right:22%;bottom:10%">${ev.deco[2]}</span>
+          <div class="eyebrow">${ev.eyebrow}</div>
+          <h2>${ev.title}</h2>
+          <p class="sub">${ev.sub}</p>
+          <div class="price-badge" data-price>${money(ev.price)} per head</div>
+        </div>
+
+        <div class="card">
+          <h3>The details</h3>
+          <ul class="facts">${ev.facts.map(([i, t]) => `<li><span class="i">${i}</span><span>${t}</span></li>`).join('')}</ul>
+          ${ev.callout ? `<div class="callout">${ev.callout}</div>` : ''}
+        </div>
+
+        <div class="avail">
+          <div class="avail-top"><span class="count" data-count>–</span><span class="label" data-label>checking availability…</span></div>
+          <div class="bar"><i data-bar></i></div>
+        </div>
+
+        <div class="card" id="book-${ev.id}">
+          <h3>Book &amp; pay</h3>
+          <form data-form novalidate>
+            <div class="two">
+              <div class="field"><label>Full name</label><input name="name" autocomplete="name" required /></div>
+              <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required /></div>
+            </div>
+            <div class="two">
+              <div class="field"><label>Phone <span class="hint">(optional)</span></label><input name="phone" type="tel" autocomplete="tel" /></div>
+              <div class="field"><label>Number of places</label><select name="guests"></select></div>
+            </div>
+            ${ev.menu ? '<div class="meals" data-meals></div>' : ''}
+            <div class="field"><label>${ev.menu ? 'Allergies / dietary notes' : 'Notes'} <span class="hint">(optional)</span></label><textarea name="notes"></textarea></div>
+            <div class="msg" data-msg></div>
+            <button class="pay" type="submit" data-pay>Pay &amp; confirm</button>
+            <p class="secure">🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.</p>
+          </form>
+          <div class="full" data-full>Sorry — this event is now fully booked.<br />Email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a> to join the waiting list.</div>
+        </div>`;
+      panelsEl.appendChild(panel);
+      wire(ev, panel);
     });
 
-    loadStatus();
+    function select(id, push) {
+      if (!EVENTS.some((e) => e.id === id)) id = EVENTS[0].id;
+      document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.event === id)));
+      document.querySelectorAll('.panel').forEach((p) => (p.hidden = p.dataset.event !== id));
+      document.title = EVENTS.find((e) => e.id === id).title.replace(/&amp;/g, '&') + ' — GYC Events';
+      if (push) history.replaceState(null, '', '#' + id);
+      window.scrollTo({ top: 0 });
+    }
+    window.addEventListener('hashchange', () => select(location.hash.slice(1), false));
+
+    /* ---------- Per-event behaviour ---------- */
+    function wire(ev, panel) {
+      const form = $('[data-form]', panel);
+      const guestsSel = form.elements.guests;
+      const pay = $('[data-pay]', panel);
+      const msg = $('[data-msg]', panel);
+      const mealsEl = $('[data-meals]', panel);
+      let price = ev.price;
+      let remaining = null;
+
+      const total = () => Number(guestsSel.value || 1) * price;
+      const setLabel = () => { pay.innerHTML = `Pay ${money(total())} &amp; confirm`; };
+      const showErr = (t) => { msg.textContent = t; msg.classList.add('show'); };
+
+      function renderMeals() {
+        if (!mealsEl) return;
+        const n = Number(guestsSel.value || 1);
+        const keep = [...mealsEl.querySelectorAll('select')].map((s) => s.value);
+        mealsEl.innerHTML = '<b>Choose a meal for each place</b>' + Array.from({ length: n }, (_, i) =>
+          `<div class="meal-row"><span>Place ${i + 1}</span><select name="meal${i}" required>
+            <option value="">Select…</option>${ev.menu.map(([id, name]) => `<option value="${id}"${keep[i] === id ? ' selected' : ''}>${name}</option>`).join('')}
+          </select></div>`).join('');
+      }
+
+      function fillGuests(max) {
+        const prev = guestsSel.value;
+        guestsSel.innerHTML = '';
+        for (let i = 1; i <= max; i++) guestsSel.add(new Option(i + (i === 1 ? ' place' : ' places'), i));
+        if (prev && Number(prev) <= max) guestsSel.value = prev;
+        renderMeals(); setLabel();
+      }
+
+      guestsSel.addEventListener('change', () => { renderMeals(); setLabel(); });
+
+      function applyStatus(s) {
+        price = s.price ?? price;
+        remaining = Math.max(0, s.remaining);
+        $('[data-count]', panel).textContent = remaining;
+        $('[data-label]', panel).textContent = `${remaining === 1 ? 'place' : 'places'} left of ${s.capacity}`;
+        $('[data-bar]', panel).style.width = Math.min(100, Math.round(((s.capacity - remaining) / s.capacity) * 100)) + '%';
+        $('[data-price]', panel).textContent = money(price) + ' per head';
+        const soldOut = remaining <= 0;
+        form.style.display = soldOut ? 'none' : 'grid';
+        $('[data-full]', panel).classList.toggle('show', soldOut);
+        fillGuests(Math.max(1, Math.min(s.maxPerBooking ?? ev.maxPerBooking, remaining)));
+      }
+
+      async function load() {
+        try {
+          const r = await fetch('/api/booking?event=' + encodeURIComponent(ev.id));
+          applyStatus(await r.json());
+        } catch (e) {
+          $('[data-label]', panel).textContent = 'availability unavailable — please refresh';
+          fillGuests(ev.maxPerBooking);
+        }
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.classList.remove('show');
+        const f = form.elements;
+        const guests = Number(f.guests.value);
+        const payload = {
+          event: ev.id, guests,
+          name: f.name.value.trim(), email: f.email.value.trim(),
+          phone: f.phone.value.trim(), notes: f.notes.value.trim(),
+        };
+        if (!payload.name || !payload.email) return showErr('Please enter your name and email.');
+        if (ev.menu) {
+          payload.meals = Array.from({ length: guests }, (_, i) => f['meal' + i]?.value || '');
+          if (payload.meals.some((m) => !m)) return showErr('Please choose a meal for every place.');
+        }
+        pay.disabled = true; pay.textContent = 'Opening secure payment…';
+        try {
+          const r = await fetch('/api/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const d = await r.json();
+          if (!r.ok || !d.paymentUrl) {
+            showErr(d.error || 'Sorry, something went wrong. Please try again.');
+            if (typeof d.remaining === 'number') applyStatus(d);
+            pay.disabled = false; setLabel();
+            return;
+          }
+          window.location.href = d.paymentUrl; // nothing is confirmed until they've paid
+        } catch (err) {
+          showErr('Network error — please check your connection and try again.');
+          pay.disabled = false; setLabel();
+        }
+      });
+
+      fillGuests(ev.maxPerBooking);
+      load();
+    }
+
+    select(location.hash.slice(1), false);
   </script>
 </body>
 </html>

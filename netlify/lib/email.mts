@@ -3,15 +3,18 @@
    on, so a missing email key can never lose a booking. Same pattern as
    the club's other event sites (gyc-jog-dinner, gyc-air-display-bbq).
    ------------------------------------------------------------------- */
+import { getEvent, type EventDef } from "./events.mts";
 
 export type SendResult = { ok: boolean; reason?: string };
 
 export interface EmailBooking {
   ref: string;
+  event?: string;
   name: string;
   email: string;
   phone?: string;
   guests: number;
+  meals?: string[];
   notes?: string;
   total: number;
 }
@@ -55,32 +58,43 @@ function money(n: number) {
   return "£" + n.toFixed(2);
 }
 
-function summarise(b: EmailBooking) {
-  return [
-    `Name: ${b.name}`,
-    `Places: ${b.guests}`,
-    b.phone ? `Phone: ${b.phone}` : null,
-    b.notes ? `Notes: ${b.notes}` : null,
-    `Paid: ${money(b.total)}`,
-    `Reference: ${b.ref}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+function meals(b: EmailBooking, ev: EventDef): string {
+  if (!b.meals?.length || !ev.menu) return "";
+  const counts: Record<string, number> = {};
+  b.meals.forEach((id) => {
+    const name = ev.menu!.find((m) => m.id === id)?.name ?? id;
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([name, n]) => `${n} × ${name}`)
+    .join(", ");
 }
 
-function guestText(b: EmailBooking) {
+/** Label/value rows shared by the text and HTML versions. */
+function rows(b: EmailBooking, ev: EventDef): [string, string][] {
+  const m = meals(b, ev);
   return [
-    `Thanks ${b.name}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked.`,
+    ["Event", ev.title],
+    ["When", ev.when],
+    ["Where", ev.where],
+    ["Name", b.name],
+    ["Places", String(b.guests)],
+    ...(m ? ([["Meals", m]] as [string, string][]) : []),
+    ...(b.phone ? ([["Phone", b.phone]] as [string, string][]) : []),
+    ...(b.notes ? ([["Notes", b.notes]] as [string, string][]) : []),
+    ["Paid", money(b.total)],
+    ["Reference", b.ref],
+  ];
+}
+
+function guestText(b: EmailBooking, ev: EventDef) {
+  return [
+    `Thanks ${b.name}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked for the ${ev.title}.`,
     "",
-    "Saturday 26 September, 6.30pm at the Guernsey Yacht Club.",
+    ...rows(b, ev).map(([k, v]) => `${k}: ${v}`),
     "",
-    summarise(b),
-    "",
-    "Ten wines to taste — red, white & rosé — plus a charcuterie & cheese board.",
-    "Wines supplied by Richard Allisette (The Grape Vine), presented by Robin Fuller.",
-    "",
-    "You'll also be able to buy any of the evening's wines at wholesale prices —",
-    "but only until close of business Monday 28th September.",
+    ...ev.blurb,
+    ...(ev.callout ? ["", ev.callout] : []),
     "",
     "See you there!",
     "Guernsey Yacht Club",
@@ -89,60 +103,47 @@ function guestText(b: EmailBooking) {
 
 /** Table-based layout with inline styles throughout — the only markup
  *  email clients (Outlook desktop especially) render consistently. */
-function guestHtml(b: EmailBooking) {
-  const details = [
-    `<strong>Name:</strong> ${esc(b.name)}`,
-    `<strong>Places:</strong> ${b.guests}`,
-    b.phone ? `<strong>Phone:</strong> ${esc(b.phone)}` : null,
-    b.notes ? `<strong>Notes:</strong> ${esc(b.notes)}` : null,
-    `<strong>Paid:</strong> ${money(b.total)}`,
-    `<strong>Reference:</strong> ${b.ref}`,
-  ]
-    .filter(Boolean)
+function guestHtml(b: EmailBooking, ev: EventDef) {
+  const details = rows(b, ev)
+    .map(([k, v]) => `<strong>${k}:</strong> ${esc(v)}`)
     .join("<br>");
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#faf6ef;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf6ef;">
+  <body style="margin:0;padding:0;background:#f3f6f9;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6f9;">
       <tr>
         <td align="center" style="padding:28px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6ddcc;font-family:Georgia,'Times New Roman',serif;color:#2b2320;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #d9e1e8;font-family:Georgia,'Times New Roman',serif;color:#14222e;">
             <tr>
-              <td style="background:#4a1526;padding:30px 32px;text-align:center;">
-                <div style="color:#e4cd9a;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">Payment received</div>
-                <div style="color:#ffffff;font-size:25px;font-weight:bold;line-height:1.3;">Wine Tasting Evening</div>
-                <div style="color:#e4cd9a;font-family:Arial,sans-serif;font-size:13px;margin:8px 0 0;">Saturday 26 September &middot; 6.30pm &middot; The Guernsey Yacht Club</div>
+              <td style="background:#0f2a43;padding:30px 32px;text-align:center;">
+                <div style="color:#e0c27a;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">Payment received</div>
+                <div style="color:#ffffff;font-size:25px;font-weight:bold;line-height:1.3;">${esc(ev.title)}</div>
+                <div style="color:#e0c27a;font-family:Arial,sans-serif;font-size:13px;margin:8px 0 0;">${esc(ev.when)}</div>
               </td>
             </tr>
             <tr>
               <td style="padding:30px 32px 8px;">
                 <p style="margin:0 0 18px;font-size:15.5px;line-height:1.6;">Thanks ${esc(b.name)}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked.</p>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf6ef;border-radius:10px;margin-bottom:22px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6f9;border-radius:10px;margin-bottom:22px;">
                   <tr>
-                    <td style="padding:16px 20px;font-family:Arial,sans-serif;font-size:14px;line-height:1.9;color:#2b2320;">
+                    <td style="padding:16px 20px;font-family:Arial,sans-serif;font-size:14px;line-height:1.9;color:#14222e;">
                       ${details}
                     </td>
                   </tr>
                 </table>
-                <p style="margin:0 0 20px;font-size:14.5px;line-height:1.65;color:#5a5049;">
-                  Ten wines to taste &mdash; red, white &amp; ros&eacute; &mdash; plus a charcuterie &amp; cheese board.
-                  Wines supplied by <strong>Richard Allisette</strong> (The Grape Vine), presented by <strong>Robin Fuller</strong>.
-                </p>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                  <tr>
-                    <td style="background:#fbf2e3;border-left:4px solid #c8a25c;border-radius:8px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#6b4a13;">
-                      You'll also be able to buy any of the evening's wines at wholesale prices &mdash; but only until
-                      close of business <strong>Monday 28th September</strong>.
-                    </td>
-                  </tr>
-                </table>
+                ${ev.blurb.map((p) => `<p style="margin:0 0 14px;font-size:14.5px;line-height:1.65;color:#4a5b69;">${esc(p)}</p>`).join("")}
+                ${
+                  ev.callout
+                    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 24px;"><tr><td style="background:#fbf5e4;border-left:4px solid #c9a24a;border-radius:8px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#6b4a13;">${esc(ev.callout)}</td></tr></table>`
+                    : ""
+                }
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 32px 28px;text-align:center;border-top:1px solid #e6ddcc;">
-                <div style="font-size:13.5px;color:#5a5049;">See you there!</div>
-                <div style="font-size:14px;font-weight:bold;color:#4a1526;margin-top:4px;">Guernsey Yacht Club</div>
+              <td style="padding:18px 32px 28px;text-align:center;border-top:1px solid #d9e1e8;">
+                <div style="font-size:13.5px;color:#4a5b69;">See you there!</div>
+                <div style="font-size:14px;font-weight:bold;color:#0f2a43;margin-top:4px;">Guernsey Yacht Club</div>
               </td>
             </tr>
           </table>
@@ -154,19 +155,22 @@ function guestHtml(b: EmailBooking) {
 }
 
 export async function sendConfirmations(b: EmailBooking): Promise<SendResult> {
+  const ev = getEvent(b.event);
+  if (!ev) return { ok: false, reason: "unknown-event" };
   const club = Netlify.env.get("CLUB_EMAIL");
 
   const guest = await send(
     [b.email],
-    `Confirmed — Wine Tasting Evening (${b.ref})`,
-    guestText(b),
-    guestHtml(b),
+    `Confirmed — ${ev.title} (${b.ref})`,
+    guestText(b, ev),
+    guestHtml(b, ev),
   );
 
   // The club copy stays a plain-text summary — an internal notice, not
   // something that needs to look like the guest-facing email.
   if (club) {
-    await send([club], `Wine tasting booking — ${b.name} (${b.guests} places)`, summarise(b));
+    const summary = rows(b, ev).map(([k, v]) => `${k}: ${v}`).join("\n");
+    await send([club], `${ev.title} booking — ${b.name} (${b.guests} places)`, summary);
   }
 
   return guest;

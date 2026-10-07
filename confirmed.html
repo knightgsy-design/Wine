@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Confirmed</title>
+  <title>Booking confirmed — GYC Events</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --wine: #5c1a2e;
-      --wine-dark: #3c0f1e;
-      --wine-light: #7d2740;
-      --gold: #c8a25c;
-      --gold-light: #e4cd9a;
-      --cream: #faf6ef;
-      --ink: #2b2320;
-      --ink-soft: #5a5049;
-      --line: #e6ddcc;
-      --ok: #3f7d4f;
+      --wine: #0f2a43;
+      --wine-dark: #0a1c2e;
+      --wine-light: #17405f;
+      --gold: #c9a24a;
+      --gold-light: #e0c27a;
+      --cream: #f3f6f9;
+      --ink: #14222e;
+      --ink-soft: #4a5b69;
+      --line: #d9e1e8;
+      --ok: #2f7d4a;
       --err: #a3372f;
       color-scheme: light;
     }
@@ -72,7 +72,7 @@
 <body>
   <div class="wrap">
     <h1 id="headline">Checking your payment&hellip;</h1>
-    <p class="sub">Wine Tasting Evening &middot; Saturday 26 September, 6.30pm &middot; The GYC</p>
+    <p class="sub" id="sub">GYC Events &middot; Guernsey Yacht Club</p>
 
     <div class="card" id="body">
       <div class="spinner"></div>
@@ -80,12 +80,12 @@
     </div>
 
     <footer>
-      Questions or changes: <a id="mailTo" href="#">commodore@gyc.org.gg</a>
+      Questions or changes: <a id="mailTo" href="#">events@gyc.org.gg</a>
     </footer>
   </div>
 
   <script>
-    const CLUB_EMAIL = 'commodore@gyc.org.gg';
+    const CLUB_EMAIL = 'events@gyc.org.gg';
     const $ = (s) => document.querySelector(s);
     const money = (n) => '£' + Number(n).toFixed(2);
     const ref = new URLSearchParams(location.search).get('ref');
@@ -107,10 +107,15 @@
     }
 
     function paidView(d) {
+      $('#sub').textContent = d.event + (d.when ? ' · ' + d.when : '');
       const summary = [
+        'Event       ' + d.event,
+        d.when ? 'When        ' + d.when : '',
+        d.where ? 'Where       ' + d.where : '',
         'Reference   ' + d.ref,
         'Name        ' + d.name,
         'Places      ' + d.guests,
+        d.meals ? 'Meals       ' + d.meals : '',
         d.notes ? 'Notes       ' + d.notes : '',
         '',
         'Paid        ' + money(d.total),
@@ -132,7 +137,7 @@
         'Payment didn’t go through',
         '<div class="warn">Nothing has been charged and no places are held.</div>' +
         '<p class="hint">Start again and the booking will be waiting — or email ' + esc(CLUB_EMAIL) + ' and we’ll sort it out.</p>' +
-        '<a class="solid" href="/#book">Try again</a>'
+        '<a class="solid" href="/">Try again</a>'
       );
     }
 

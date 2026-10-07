@@ -1,29 +1,39 @@
-# Wine Tasting Evening — Booking Page
+# GYC Events — Booking Site
 
-A poster-style landing page with a **pay-in-advance** booking form for the
-wine tasting evening on **Saturday 26th September, 6.30pm at the GYC**.
+The Guernsey Yacht Club events home page: an animated intro, then a tabbed
+booking page where guests choose an event and **pay in advance** (SumUp) to
+confirm their place. Repurposed from the original wine tasting booking page.
 
-- 10 wines to taste — red, white & rosé
-- Charcuterie & cheese board
-- Wines supplied by Richard Allisette (The Grape Vine), presented by Robin Fuller
-- Wholesale purchase window open until close of business Monday 28th September
-- £30 per head, maximum 40 places, paid online via **SumUp** to confirm a place
+| Event | Date | Price | Places |
+|---|---|---|---|
+| Halloween Buffet Supper | Sat 31 Oct 2026, from 6.30pm | £20 | 60 *(placeholder — confirm)* |
+| Gin & Rum Tasting — Wheadon's Bunker | Sat 14 Nov 2026, 5.30pm | £35 (dinner: Beef Stroganoff / Cauliflower Steak (V)) | 24 |
+| Wine Tasting Evening *(past — closed, bookings kept in /admin)* | Sat 26 Sep 2026 | £30 | 40 |
+
+## Adding / changing an event
+
+`netlify/lib/events.mts` is the single source of truth for each event's
+**price, capacity, per-booking limit, menu, and email wording** — the browser
+never sets what's charged. Display copy (hero text, facts list) lives in the
+`EVENTS` array at the top of the script in `index.html`. Deep links:
+`/#halloween`, `/#gin-rum` (these are what the QR codes in `qr/` point at —
+regenerate them if the site's URL changes).
+
+Events with a `menu` make every place choose a meal; the kitchen counts show
+in `/admin`.
 
 ## How it works
 
-- `index.html` — the poster / booking page. Submitting the form doesn't book
-  a place directly — it opens a SumUp Hosted Checkout for payment.
+- `index.html` — the home page: animated intro, event tabs, one booking
+  form per event. Submitting opens a SumUp Hosted Checkout for payment.
 - `confirmed.html` — where SumUp redirects back to after payment. Polls
   `/api/booking-status` until the payment is confirmed (or has failed).
 - Bookings live in **Netlify Blobs**, one record per booking (keyed by
   reference), with a status of `awaiting_payment` → `paid` (or `failed` /
-  `void`). The 40-seat cap counts `paid` **and** `awaiting_payment` bookings,
+  `void`), tagged with its `event`. Each event's own cap counts `paid` **and** `awaiting_payment` bookings,
   so two people can't both be sold the last seat while one is mid-checkout —
   see "Stuck awaiting-payment bookings" below for what happens if someone
   abandons checkout.
-- `netlify/lib/booking.mts` is the source of truth for price (`£30`),
-  capacity (`40`) and the per-booking guest limit (`8`) — the browser never
-  sets the amount charged.
 
 ### The payment flow
 
@@ -153,9 +163,7 @@ Netlify CLI: `netlify deploy --prod`). No build command is required — the
 publish directory is the repo root and functions are picked up from
 `netlify/functions` automatically, as configured in `netlify.toml`.
 
-## Adjusting event details
+## Notes
 
-- Poster copy, date/time/venue: edit the content in `index.html`.
-- Price, capacity, or the per-booking guest limit: edit the constants at the
-  top of `netlify/lib/booking.mts` (the single source of truth used by every
-  function).
+- Bookings made before multi-event support have no `event` field and are treated as the wine tasting.
+- `GET /api/booking?event=<id>` is the public availability endpoint; admin `GET` returns every event's status plus all bookings.

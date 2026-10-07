@@ -1,5 +1,6 @@
 import type { Config, Context } from "@netlify/functions";
-import { capacityStatus, listBookings, makeRef, parseDraft, writeBooking, type Booking } from "../lib/booking.mts";
+import { capacityStatus, listBookings, makeRef, parseDraft, str, writeBooking, type Booking } from "../lib/booking.mts";
+import { getEvent } from "../lib/events.mts";
 import { createCheckout } from "../lib/services.mts";
 
 export default async (req: Request, _context: Context) => {
@@ -7,20 +8,32 @@ export default async (req: Request, _context: Context) => {
     return Response.json({ error: "Use POST." }, { status: 405 });
   }
 
+  let raw: any;
+  try {
+    raw = await req.json();
+  } catch {
+    return Response.json({ error: "That booking didn't look right." }, { status: 400 });
+  }
+
+  const ev = getEvent(str(raw?.event, 30));
+  if (!ev || !ev.open) {
+    return Response.json({ error: "Sorry, that event isn't open for booking." }, { status: 400 });
+  }
+
   let draft;
   try {
-    draft = parseDraft(await req.json());
+    draft = parseDraft(raw, ev);
   } catch (e: any) {
     return Response.json({ error: e.message || "That booking didn't look right." }, { status: 400 });
   }
 
-  const status = capacityStatus(await listBookings());
+  const status = capacityStatus(await listBookings(), ev);
   if (draft.guests > status.remaining) {
     return Response.json(
       {
         error:
           status.remaining === 0
-            ? "Sorry, the wine tasting evening is fully booked."
+            ? `Sorry, the ${ev.title} is fully booked.`
             : `Only ${status.remaining} place${status.remaining === 1 ? "" : "s"} left — please choose a smaller number.`,
         ...status,
       },
@@ -30,7 +43,8 @@ export default async (req: Request, _context: Context) => {
 
   const booking: Booking = {
     ...draft,
-    ref: makeRef(),
+    event: ev.id,
+    ref: makeRef(ev),
     status: "awaiting_payment",
     createdAt: new Date().toISOString(),
   };

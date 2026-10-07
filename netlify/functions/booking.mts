@@ -1,13 +1,14 @@
 import type { Context, Config } from "@netlify/functions";
 import {
-  CAPACITY,
-  MAX_GUESTS_PER_BOOKING,
-  PRICE_PER_HEAD,
+  allEventStatuses,
   capacityStatus,
+  eventIdOf,
   isReserving,
+  isValidEmail,
   key as bookingKey,
   listBookings,
   makeRef,
+  parseMeals,
   readBooking,
   store as bookingStore,
   str,
@@ -15,11 +16,8 @@ import {
   type Booking,
 } from "../lib/booking.mts";
 import { sendConfirmations } from "../lib/email.mts";
+import { EVENTS, getEvent } from "../lib/events.mts";
 import { settle } from "../lib/settle.mts";
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function isAdmin(req: Request, url: URL): boolean {
   const configuredKey = Netlify.env.get("ADMIN_KEY");
@@ -36,23 +34,33 @@ function isAdminAttempt(req: Request, url: URL): boolean {
   return Boolean(req.headers.get("x-admin-key") || url.searchParams.get("admin"));
 }
 
+/** What every admin write hands back so the page can redraw itself. */
+async function snapshot() {
+  const bookings = await listBookings();
+  return { events: allEventStatuses(bookings), bookings };
+}
+
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url);
 
-  // ---- GET: availability, or the full guest list for admins ------------
+  // ---- GET: one event's availability (public), or everything (admin) ---
   if (req.method === "GET") {
     const bookings = await listBookings();
-    const status = capacityStatus(bookings);
 
     if (isAdmin(req, url)) {
-      return Response.json({ ...status, bookings });
+      return Response.json({ events: allEventStatuses(bookings), bookings });
     }
     // A wrong admin key must fail loudly, not silently degrade to the
     // public (bookings-less) shape.
     if (isAdminAttempt(req, url)) {
       return Response.json({ error: "Unauthorized." }, { status: 401 });
     }
-    return Response.json(status);
+
+    const ev = getEvent(url.searchParams.get("event") || "");
+    if (!ev || !ev.open) {
+      return Response.json({ error: "Unknown event." }, { status: 404 });
+    }
+    return Response.json(capacityStatus(bookings, ev));
   }
 
   // ---- POST: admin-only — record a booking paid outside the online form
@@ -70,6 +78,9 @@ export default async (req: Request, context: Context) => {
       return Response.json({ error: "Invalid request body." }, { status: 400 });
     }
 
+    const ev = EVENTS[str(body.event, 30)];
+    if (!ev) return Response.json({ error: "Choose an event." }, { status: 400 });
+
     const name = str(body.name, 80);
     const email = str(body.email, 120);
     const phone = str(body.phone, 40);
@@ -84,18 +95,21 @@ export default async (req: Request, context: Context) => {
     if (email && !isValidEmail(email)) {
       return Response.json({ error: "That email address doesn't look right." }, { status: 400 });
     }
-    if (!Number.isInteger(guests) || guests < 1 || guests > MAX_GUESTS_PER_BOOKING) {
-      return Response.json(
-        { error: `Please choose between 1 and ${MAX_GUESTS_PER_BOOKING} places.` },
-        { status: 400 },
-      );
+    if (!Number.isInteger(guests) || guests < 1 || guests > ev.maxPerBooking) {
+      return Response.json({ error: `Please choose between 1 and ${ev.maxPerBooking} places.` }, { status: 400 });
     }
 
-    const bookings = await listBookings();
-    const status = capacityStatus(bookings);
+    let meals: string[] | undefined;
+    try {
+      meals = parseMeals(body.meals, ev, guests);
+    } catch (e: any) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
+
+    const status = capacityStatus(await listBookings(), ev);
     if (guests > status.remaining) {
       return Response.json(
-        { error: `Only ${status.remaining} place${status.remaining === 1 ? "" : "s"} left.` },
+        { error: `Only ${status.remaining} place${status.remaining === 1 ? "" : "s"} left for the ${ev.title}.` },
         { status: 409 },
       );
     }
@@ -103,7 +117,7 @@ export default async (req: Request, context: Context) => {
     // The admin may have taken a different amount than the standard price
     // (a complimentary place, cash rounding), so an override is allowed but
     // the computed price is the default.
-    const computed = Math.round(guests * PRICE_PER_HEAD * 100) / 100;
+    const computed = Math.round(guests * ev.price * 100) / 100;
     const total =
       body.amountPounds !== "" && body.amountPounds != null
         ? Math.round(parseFloat(body.amountPounds) * 100) / 100
@@ -120,13 +134,15 @@ export default async (req: Request, context: Context) => {
     const isPending = paymentMethod === "card at the door";
 
     const booking: Booking = {
-      ref: makeRef(true),
+      ref: makeRef(ev, true),
+      event: ev.id,
       status: isPending ? "awaiting_payment" : "paid",
       name,
       email,
       phone: phone || undefined,
       notes: notes || undefined,
       guests,
+      meals,
       total,
       source: "manual",
       paymentMethod,
@@ -150,8 +166,7 @@ export default async (req: Request, context: Context) => {
     }
 
     await writeBooking(booking);
-    const updated = capacityStatus(await listBookings());
-    return Response.json({ success: true, booking, emailed, ...updated, bookings: await listBookings() }, { status: 201 });
+    return Response.json({ success: true, booking, emailed, ...(await snapshot()) }, { status: 201 });
   }
 
   // ---- PATCH: admin-only — edit, resend, recheck against SumUp, or void
@@ -172,19 +187,18 @@ export default async (req: Request, context: Context) => {
     if (!booking) {
       return Response.json({ error: "Booking not found." }, { status: 404 });
     }
+    const ev = getEvent(eventIdOf(booking))!;
 
     // Resending a confirmation email.
     if (body.action === "resend") {
       const result = await sendConfirmations(booking);
       booking.confirmationSent = result.ok;
       await writeBooking(booking);
-      const status = capacityStatus(await listBookings());
       return Response.json({
         success: result.ok,
         outcome: result.ok ? "sent" : result.reason ?? "failed",
         booking,
-        ...status,
-        bookings: await listBookings(),
+        ...(await snapshot()),
       });
     }
 
@@ -194,8 +208,7 @@ export default async (req: Request, context: Context) => {
         return Response.json({ error: "No SumUp checkout on this booking to check." }, { status: 400 });
       }
       const updated = await settle({ id: booking.checkoutId, ref: booking.ref });
-      const status = capacityStatus(await listBookings());
-      return Response.json({ success: true, status: updated?.status ?? booking.status, ...status, bookings: await listBookings() });
+      return Response.json({ success: true, status: updated?.status ?? booking.status, ...(await snapshot()) });
     }
 
     // Marking an over-the-counter "awaiting payment" booking (card at the
@@ -222,8 +235,7 @@ export default async (req: Request, context: Context) => {
       }
 
       await writeBooking(booking);
-      const status = capacityStatus(await listBookings());
-      return Response.json({ success: true, booking, emailed, ...status, bookings: await listBookings() });
+      return Response.json({ success: true, booking, emailed, ...(await snapshot()) });
     }
 
     // Voiding — deliberately not a delete for a paid booking. A paid
@@ -234,8 +246,7 @@ export default async (req: Request, context: Context) => {
       booking.voidedAt = new Date().toISOString();
       booking.voidReason = str(body.reason, 200) || undefined;
       await writeBooking(booking);
-      const status = capacityStatus(await listBookings());
-      return Response.json({ success: true, booking, ...status, bookings: await listBookings() });
+      return Response.json({ success: true, booking, ...(await snapshot()) });
     }
 
     // Otherwise: editing the booking's own fields.
@@ -255,17 +266,28 @@ export default async (req: Request, context: Context) => {
     if (nextEmail && !isValidEmail(nextEmail)) {
       return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
-    if (!Number.isInteger(nextGuests) || nextGuests < 1 || nextGuests > MAX_GUESTS_PER_BOOKING) {
-      return Response.json({ error: `Guests must be between 1 and ${MAX_GUESTS_PER_BOOKING}.` }, { status: 400 });
+    if (!Number.isInteger(nextGuests) || nextGuests < 1 || nextGuests > ev.maxPerBooking) {
+      return Response.json({ error: `Guests must be between 1 and ${ev.maxPerBooking}.` }, { status: 400 });
+    }
+
+    // Menu events: the meals list has to keep matching the number of places.
+    let nextMeals = booking.meals;
+    if (ev.menu) {
+      try {
+        nextMeals = parseMeals(body.meals ?? booking.meals, ev, nextGuests);
+      } catch {
+        return Response.json({ error: "Choose a meal for every place." }, { status: 400 });
+      }
     }
 
     if (isReserving(booking.status)) {
       const bookings = await listBookings();
       const otherTaken = bookings.reduce(
-        (sum, b) => (b.ref === ref || !isReserving(b.status) ? sum : sum + b.guests),
+        (sum, b) =>
+          b.ref === ref || eventIdOf(b) !== ev.id || !isReserving(b.status) ? sum : sum + b.guests,
         0,
       );
-      const remainingForThis = Math.max(0, CAPACITY - otherTaken);
+      const remainingForThis = Math.max(0, ev.capacity - otherTaken);
       if (nextGuests > remainingForThis) {
         return Response.json(
           { error: `Only ${remainingForThis} place${remainingForThis === 1 ? "" : "s"} available for this booking.` },
@@ -279,13 +301,13 @@ export default async (req: Request, context: Context) => {
     booking.phone = nextPhone;
     booking.notes = nextNotes;
     booking.guests = nextGuests;
+    booking.meals = nextMeals;
     if (booking.status === "paid") {
-      booking.total = Math.round(nextGuests * PRICE_PER_HEAD * 100) / 100;
+      booking.total = Math.round(nextGuests * ev.price * 100) / 100;
     }
 
     await writeBooking(booking);
-    const status = capacityStatus(await listBookings());
-    return Response.json({ success: true, booking, ...status, bookings: await listBookings() });
+    return Response.json({ success: true, booking, ...(await snapshot()) });
   }
 
   // ---- DELETE: admin-only — remove a booking that never took payment.
@@ -315,8 +337,7 @@ export default async (req: Request, context: Context) => {
     }
 
     await bookingStore().delete(bookingKey(ref));
-    const status = capacityStatus(await listBookings());
-    return Response.json({ success: true, ...status, bookings: await listBookings() });
+    return Response.json({ success: true, ...(await snapshot()) });
   }
 
   return new Response("Method not allowed", { status: 405 });

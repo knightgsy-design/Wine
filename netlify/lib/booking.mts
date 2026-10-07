@@ -1,27 +1,22 @@
 import { getStore } from "@netlify/blobs";
+import { EVENTS, LEGACY_EVENT, type EventDef } from "./events.mts";
 
-/* ---------------------------------------------------------------
-   THE PRICE AND CAPACITY LIVE HERE. This is the authority — the
-   browser never gets to tell the server what to charge, and every
-   capacity check runs off this store, never off anything the client
-   sends. If either changes, change it here (public/index.html's
-   copy of the price is display only).
-   --------------------------------------------------------------- */
-export const PRICE_PER_HEAD = 30;
 export const CURRENCY = "GBP";
-export const CAPACITY = 40;
-export const MAX_GUESTS_PER_BOOKING = 8;
 
 export type BookingStatus = "awaiting_payment" | "paid" | "failed" | "void";
 
 export type Booking = {
   ref: string;
+  /** Which event. Bookings made before multi-event support have none → "wine". */
+  event?: string;
   status: BookingStatus;
   name: string;
   email: string;
   phone?: string;
   notes?: string;
   guests: number;
+  /** One menu id per place, for events that have a menu. */
+  meals?: string[];
   total: number;
   checkoutId?: string;
   createdAt: string;
@@ -36,6 +31,10 @@ export type Booking = {
   voidedAt?: string;
   voidReason?: string;
 };
+
+export function eventIdOf(b: Booking): string {
+  return b.event || LEGACY_EVENT;
+}
 
 export function store() {
   return getStore({ name: "wine-tasting-2026-09-26", consistency: "strong" });
@@ -53,8 +52,7 @@ export async function writeBooking(b: Booking) {
   await store().setJSON(key(b.ref), b);
 }
 
-/** Every booking ever started, paid or not. The admin page and the
- *  capacity check both just filter this down differently. */
+/** Every booking ever started, for every event, paid or not. */
 export async function listBookings(): Promise<Booking[]> {
   const s = store();
   const { blobs } = await s.list({ prefix: "booking/" });
@@ -66,11 +64,11 @@ export function money(n: number) {
   return "£" + n.toFixed(2);
 }
 
-export function makeRef(manual = false) {
+export function makeRef(ev: EventDef, manual = false) {
   const rnd = Math.random().toString(36).slice(2, 6).toUpperCase();
   // "M" marks it as added by hand from the admin page, so it can never be
   // confused with a booking that actually paid through SumUp.
-  return `WINE-${manual ? "M" : ""}${rnd}`;
+  return `${ev.refPrefix}-${manual ? "M" : ""}${rnd}`;
 }
 
 /** Trims a field to a safe length. Anything that isn't a string comes back empty. */
@@ -78,12 +76,24 @@ export function str(v: any, max = 200): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
 
-function isValidEmail(email: string) {
+export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Checks a list of menu choices against an event's menu. Throws on anything off. */
+export function parseMeals(raw: any, ev: EventDef, guests: number): string[] | undefined {
+  if (!ev.menu) return undefined;
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length !== guests) throw new Error("Please choose a meal for every place.");
+  return list.map((m: any, i: number) => {
+    const id = str(m, 30);
+    if (!ev.menu!.some((item) => item.id === id)) throw new Error(`Place ${i + 1} has no meal chosen.`);
+    return id;
+  });
+}
+
 /** Validates whatever the browser sent for a new booking. Throws on anything suspect. */
-export function parseDraft(raw: any) {
+export function parseDraft(raw: any, ev: EventDef) {
   const name = str(raw?.name, 80);
   const email = str(raw?.email, 120);
   const phone = str(raw?.phone, 40);
@@ -92,54 +102,60 @@ export function parseDraft(raw: any) {
 
   if (!name) throw new Error("Please enter your name.");
   if (!isValidEmail(email)) throw new Error("Please enter a valid email address.");
-  if (!Number.isInteger(guests) || guests < 1 || guests > MAX_GUESTS_PER_BOOKING) {
-    throw new Error(`Please choose between 1 and ${MAX_GUESTS_PER_BOOKING} places.`);
+  if (!Number.isInteger(guests) || guests < 1 || guests > ev.maxPerBooking) {
+    throw new Error(`Please choose between 1 and ${ev.maxPerBooking} places.`);
   }
+  const meals = parseMeals(raw?.meals, ev, guests);
 
   // Total is computed here, never taken from the request.
-  const total = Math.round(guests * PRICE_PER_HEAD * 100) / 100;
+  const total = Math.round(guests * ev.price * 100) / 100;
 
-  return { name, email, phone, notes, guests, total };
+  return { name, email, phone, notes, guests, meals, total };
 }
 
-/** Seats that count against the 40-seat cap: paid, and awaiting payment (so
+/** Seats that count against an event's cap: paid, and awaiting payment (so
  *  two people mid-checkout can't both be sold the last seat). A stuck
  *  awaiting_payment booking is freed by voiding it from the admin page. */
 export function isReserving(status: BookingStatus) {
   return status === "paid" || status === "awaiting_payment";
 }
 
-export function capacityStatus(bookings: Booking[]) {
-  const active = bookings.filter((b) => isReserving(b.status));
-  const paid = bookings.filter((b) => b.status === "paid");
-  const manual = paid.filter((b) => b.source === "manual");
-  const online = paid.filter((b) => b.source !== "manual");
-  const awaitingPayment = bookings.filter((b) => b.status === "awaiting_payment");
+/** Capacity picture for ONE event. */
+export function capacityStatus(bookings: Booking[], ev: EventDef) {
+  const mine = bookings.filter((b) => eventIdOf(b) === ev.id);
+  const active = mine.filter((b) => isReserving(b.status));
+  const sum = (list: Booking[]) => list.reduce((n, b) => n + b.guests, 0);
 
-  const taken = active.reduce((sum, b) => sum + b.guests, 0);
-  const remaining = Math.max(0, CAPACITY - taken);
-
+  const taken = sum(active);
   return {
-    capacity: CAPACITY,
+    event: ev.id,
+    title: ev.title,
+    price: ev.price,
+    capacity: ev.capacity,
+    maxPerBooking: ev.maxPerBooking,
+    open: ev.open,
+    menu: ev.menu ?? null,
     taken,
-    remaining,
-    paid: paid.reduce((sum, b) => sum + b.guests, 0),
-    manual: manual.reduce((sum, b) => sum + b.guests, 0),
-    online: online.reduce((sum, b) => sum + b.guests, 0),
-    awaitingPayment: awaitingPayment.reduce((sum, b) => sum + b.guests, 0),
+    remaining: Math.max(0, ev.capacity - taken),
+    paid: sum(mine.filter((b) => b.status === "paid")),
+    awaitingPayment: sum(mine.filter((b) => b.status === "awaiting_payment")),
   };
 }
 
-/** Human-readable summary used in emails. */
-export function summarise(b: Booking) {
-  return [
-    `Reference: ${b.ref}`,
-    `Name: ${b.name}`,
-    `Places: ${b.guests}`,
-    b.phone ? `Phone: ${b.phone}` : null,
-    b.notes ? `Notes: ${b.notes}` : null,
-    `Paid: ${money(b.total)}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+/** Status for every event at once — what the admin page wants. */
+export function allEventStatuses(bookings: Booking[]) {
+  return Object.fromEntries(Object.values(EVENTS).map((ev) => [ev.id, capacityStatus(bookings, ev)]));
+}
+
+/** "2 × Beef Stroganoff with veg rice, 1 × Cauliflower Steak (V)" */
+export function mealSummary(b: Booking, ev: EventDef | null): string {
+  if (!b.meals?.length || !ev?.menu) return "";
+  const counts: Record<string, number> = {};
+  b.meals.forEach((id) => {
+    const name = ev.menu!.find((m) => m.id === id)?.name ?? id;
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([name, n]) => `${n} × ${name}`)
+    .join(", ");
 }
