@@ -100,40 +100,40 @@ function guestHtml(b: EmailBooking, ev: EventDef) {
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#f3f6f9;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6f9;">
+  <body style="margin:0;padding:0;background:#ebf0f5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ebf0f5;">
       <tr>
         <td align="center" style="padding:28px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #d9e1e8;font-family:Georgia,'Times New Roman',serif;color:#14222e;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #d6dde6;font-family:Georgia,'Times New Roman',serif;color:#14202e;">
             <tr>
-              <td style="background:#0f2a43;padding:30px 32px;text-align:center;">
-                <div style="color:#e0c27a;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">Payment received</div>
+              <td style="background:#0a2240;padding:30px 32px;text-align:center;">
+                <div style="color:#ff6a6e;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">Payment received</div>
                 <div style="color:#ffffff;font-size:25px;font-weight:bold;line-height:1.3;">${esc(ev.title)}</div>
-                <div style="color:#e0c27a;font-family:Arial,sans-serif;font-size:13px;margin:8px 0 0;">${esc(ev.when)}</div>
+                <div style="color:#ff6a6e;font-family:Arial,sans-serif;font-size:13px;margin:8px 0 0;">${esc(ev.when)}</div>
               </td>
             </tr>
             <tr>
               <td style="padding:30px 32px 8px;">
                 <p style="margin:0 0 18px;font-size:15.5px;line-height:1.6;">Thanks ${esc(b.name)}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked.</p>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6f9;border-radius:10px;margin-bottom:22px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ebf0f5;border-radius:10px;margin-bottom:22px;">
                   <tr>
-                    <td style="padding:16px 20px;font-family:Arial,sans-serif;font-size:14px;line-height:1.9;color:#14222e;">
+                    <td style="padding:16px 20px;font-family:Arial,sans-serif;font-size:14px;line-height:1.9;color:#14202e;">
                       ${details}
                     </td>
                   </tr>
                 </table>
-                ${ev.blurb.map((p) => `<p style="margin:0 0 14px;font-size:14.5px;line-height:1.65;color:#4a5b69;">${esc(p)}</p>`).join("")}
+                ${ev.blurb.map((p) => `<p style="margin:0 0 14px;font-size:14.5px;line-height:1.65;color:#4d5b6d;">${esc(p)}</p>`).join("")}
                 ${
                   ev.callout
-                    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 24px;"><tr><td style="background:#fbf5e4;border-left:4px solid #c9a24a;border-radius:8px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#6b4a13;">${esc(ev.callout)}</td></tr></table>`
+                    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 24px;"><tr><td style="background:#fdecec;border-left:4px solid #d0161b;border-radius:8px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#6b1014;">${esc(ev.callout)}</td></tr></table>`
                     : ""
                 }
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 32px 28px;text-align:center;border-top:1px solid #d9e1e8;">
-                <div style="font-size:13.5px;color:#4a5b69;">See you there!</div>
-                <div style="font-size:14px;font-weight:bold;color:#0f2a43;margin-top:4px;">Guernsey Yacht Club</div>
+              <td style="padding:18px 32px 28px;text-align:center;border-top:1px solid #d6dde6;">
+                <div style="font-size:13.5px;color:#4d5b6d;">See you there!</div>
+                <div style="font-size:14px;font-weight:bold;color:#0a2240;margin-top:4px;">Guernsey Yacht Club</div>
               </td>
             </tr>
           </table>
