@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import { EVENTS, LEGACY_EVENT, type EventDef } from "./events.mts";
+import { EVENTS, LEGACY_EVENT, isBookable, type EventDef } from "./events.mts";
 
 export const CURRENCY = "GBP";
 
@@ -15,7 +15,9 @@ export type Booking = {
   phone?: string;
   notes?: string;
   guests: number;
-  /** One menu id per place, for events that have a menu. */
+  /** Menu choices: course id → one item id per place (index = place). */
+  picks?: Record<string, string[]>;
+  /** Legacy: single-course events stored a flat list. Read via picksOf(), never written. */
   meals?: string[];
   total: number;
   checkoutId?: string;
@@ -80,16 +82,30 @@ export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/** Checks a list of menu choices against an event's menu. Throws on anything off. */
-export function parseMeals(raw: any, ev: EventDef, guests: number): string[] | undefined {
-  if (!ev.menu) return undefined;
-  const list = Array.isArray(raw) ? raw : [];
-  if (list.length !== guests) throw new Error("Please choose a meal for every place.");
-  return list.map((m: any, i: number) => {
-    const id = str(m, 30);
-    if (!ev.menu!.some((item) => item.id === id)) throw new Error(`Place ${i + 1} has no meal chosen.`);
-    return id;
-  });
+/** Checks menu choices against an event's courses. Throws on anything off. */
+export function parsePicks(raw: any, ev: EventDef, guests: number): Record<string, string[]> | undefined {
+  if (!ev.courses) return undefined;
+  const out: Record<string, string[]> = {};
+  for (const course of ev.courses) {
+    const list = Array.isArray(raw?.[course.id]) ? raw[course.id] : [];
+    if (list.length !== guests) throw new Error(`Please choose a ${course.label.toLowerCase()} for every place.`);
+    out[course.id] = list.map((m: any, i: number) => {
+      const id = str(m, 30);
+      if (!course.items.some((item) => item.id === id)) {
+        throw new Error(`Place ${i + 1} has no ${course.label.toLowerCase()} chosen.`);
+      }
+      return id;
+    });
+  }
+  return out;
+}
+
+/** A booking's picks, whether stored the new way or the legacy flat `meals` way. */
+export function picksOf(b: Booking, ev: EventDef | null): Record<string, string[]> | undefined {
+  if (!ev?.courses) return undefined;
+  if (b.picks) return b.picks;
+  if (b.meals?.length && ev.courses.length === 1) return { [ev.courses[0].id]: b.meals };
+  return undefined;
 }
 
 /** Validates whatever the browser sent for a new booking. Throws on anything suspect. */
@@ -105,12 +121,12 @@ export function parseDraft(raw: any, ev: EventDef) {
   if (!Number.isInteger(guests) || guests < 1 || guests > ev.maxPerBooking) {
     throw new Error(`Please choose between 1 and ${ev.maxPerBooking} places.`);
   }
-  const meals = parseMeals(raw?.meals, ev, guests);
+  const picks = parsePicks(raw?.picks, ev, guests);
 
   // Total is computed here, never taken from the request.
   const total = Math.round(guests * ev.price * 100) / 100;
 
-  return { name, email, phone, notes, guests, meals, total };
+  return { name, email, phone, notes, guests, picks, total };
 }
 
 /** Seats that count against an event's cap: paid, and awaiting payment (so
@@ -120,7 +136,7 @@ export function isReserving(status: BookingStatus) {
   return status === "paid" || status === "awaiting_payment";
 }
 
-/** Capacity picture for ONE event. */
+/** Capacity picture for ONE event. `capacity`/`remaining` are null when the event has no limit. */
 export function capacityStatus(bookings: Booking[], ev: EventDef) {
   const mine = bookings.filter((b) => eventIdOf(b) === ev.id);
   const active = mine.filter((b) => isReserving(b.status));
@@ -134,12 +150,27 @@ export function capacityStatus(bookings: Booking[], ev: EventDef) {
     capacity: ev.capacity,
     maxPerBooking: ev.maxPerBooking,
     open: ev.open,
-    menu: ev.menu ?? null,
+    bookable: isBookable(ev),
+    closesAt: ev.closesAt ?? null,
+    courses: ev.courses ?? null,
     taken,
-    remaining: Math.max(0, ev.capacity - taken),
+    remaining: ev.capacity === null ? null : Math.max(0, ev.capacity - taken),
     paid: sum(mine.filter((b) => b.status === "paid")),
     awaitingPayment: sum(mine.filter((b) => b.status === "awaiting_payment")),
+    kitchen: kitchenTotals(active, ev),
   };
+}
+
+/** What the kitchen needs to cook: per course, how many of each item (held seats only). */
+export function kitchenTotals(active: Booking[], ev: EventDef) {
+  if (!ev.courses) return null;
+  return ev.courses.map((course) => ({
+    course: course.label,
+    items: course.items.map((item) => ({
+      name: item.name,
+      count: active.reduce((n, b) => n + (picksOf(b, ev)?.[course.id] ?? []).filter((id) => id === item.id).length, 0),
+    })),
+  }));
 }
 
 /** Status for every event at once — what the admin page wants. */
@@ -147,15 +178,19 @@ export function allEventStatuses(bookings: Booking[]) {
   return Object.fromEntries(Object.values(EVENTS).map((ev) => [ev.id, capacityStatus(bookings, ev)]));
 }
 
-/** "2 × Beef Stroganoff with veg rice, 1 × Cauliflower Steak (V)" */
-export function mealSummary(b: Booking, ev: EventDef | null): string {
-  if (!b.meals?.length || !ev?.menu) return "";
-  const counts: Record<string, number> = {};
-  b.meals.forEach((id) => {
-    const name = ev.menu!.find((m) => m.id === id)?.name ?? id;
-    counts[name] = (counts[name] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .map(([name, n]) => `${n} × ${name}`)
-    .join(", ");
+/** "Main: 2 × Roast turkey, 1 × Salmon · Dessert: 3 × Pudding" */
+export function pickSummary(b: Booking, ev: EventDef | null): string {
+  const picks = picksOf(b, ev);
+  if (!picks || !ev?.courses) return "";
+  return ev.courses
+    .map((course) => {
+      const counts: Record<string, number> = {};
+      (picks[course.id] ?? []).forEach((id) => {
+        const name = course.items.find((i) => i.id === id)?.name ?? id;
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      const text = Object.entries(counts).map(([n, c]) => `${c} × ${n}`).join(", ");
+      return ev.courses!.length > 1 ? `${course.label}: ${text}` : text;
+    })
+    .join(" · ");
 }

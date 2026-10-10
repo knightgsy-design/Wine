@@ -3,6 +3,7 @@
    on, so a missing email key can never lose a booking. Same pattern as
    the club's other event sites (gyc-jog-dinner, gyc-air-display-bbq).
    ------------------------------------------------------------------- */
+import { pickSummary, type Booking } from "./booking.mts";
 import { getEvent, type EventDef } from "./events.mts";
 
 export type SendResult = { ok: boolean; reason?: string };
@@ -14,6 +15,7 @@ export interface EmailBooking {
   email: string;
   phone?: string;
   guests: number;
+  picks?: Record<string, string[]>;
   meals?: string[];
   notes?: string;
   total: number;
@@ -58,28 +60,16 @@ function money(n: number) {
   return "£" + n.toFixed(2);
 }
 
-function meals(b: EmailBooking, ev: EventDef): string {
-  if (!b.meals?.length || !ev.menu) return "";
-  const counts: Record<string, number> = {};
-  b.meals.forEach((id) => {
-    const name = ev.menu!.find((m) => m.id === id)?.name ?? id;
-    counts[name] = (counts[name] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .map(([name, n]) => `${n} × ${name}`)
-    .join(", ");
-}
-
 /** Label/value rows shared by the text and HTML versions. */
 function rows(b: EmailBooking, ev: EventDef): [string, string][] {
-  const m = meals(b, ev);
+  const m = pickSummary(b as Booking, ev);
   return [
     ["Event", ev.title],
     ["When", ev.when],
     ["Where", ev.where],
     ["Name", b.name],
     ["Places", String(b.guests)],
-    ...(m ? ([["Meals", m]] as [string, string][]) : []),
+    ...(m ? ([["Menu", m]] as [string, string][]) : []),
     ...(b.phone ? ([["Phone", b.phone]] as [string, string][]) : []),
     ...(b.notes ? ([["Notes", b.notes]] as [string, string][]) : []),
     ["Paid", money(b.total)],

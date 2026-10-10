@@ -1,6 +1,6 @@
 import type { Config, Context } from "@netlify/functions";
 import { capacityStatus, listBookings, makeRef, parseDraft, str, writeBooking, type Booking } from "../lib/booking.mts";
-import { getEvent } from "../lib/events.mts";
+import { getEvent, isBookable } from "../lib/events.mts";
 import { createCheckout } from "../lib/services.mts";
 
 export default async (req: Request, _context: Context) => {
@@ -16,8 +16,8 @@ export default async (req: Request, _context: Context) => {
   }
 
   const ev = getEvent(str(raw?.event, 30));
-  if (!ev || !ev.open) {
-    return Response.json({ error: "Sorry, that event isn't open for booking." }, { status: 400 });
+  if (!ev || !isBookable(ev)) {
+    return Response.json({ error: "Sorry, booking for that event has closed." }, { status: 400 });
   }
 
   let draft;
@@ -28,7 +28,7 @@ export default async (req: Request, _context: Context) => {
   }
 
   const status = capacityStatus(await listBookings(), ev);
-  if (draft.guests > status.remaining) {
+  if (status.remaining !== null && draft.guests > status.remaining) {
     return Response.json(
       {
         error:

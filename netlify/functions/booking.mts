@@ -8,7 +8,8 @@ import {
   key as bookingKey,
   listBookings,
   makeRef,
-  parseMeals,
+  parsePicks,
+  picksOf,
   readBooking,
   store as bookingStore,
   str,
@@ -99,15 +100,15 @@ export default async (req: Request, context: Context) => {
       return Response.json({ error: `Please choose between 1 and ${ev.maxPerBooking} places.` }, { status: 400 });
     }
 
-    let meals: string[] | undefined;
+    let picks: Record<string, string[]> | undefined;
     try {
-      meals = parseMeals(body.meals, ev, guests);
+      picks = parsePicks(body.picks, ev, guests);
     } catch (e: any) {
       return Response.json({ error: e.message }, { status: 400 });
     }
 
     const status = capacityStatus(await listBookings(), ev);
-    if (guests > status.remaining) {
+    if (status.remaining !== null && guests > status.remaining) {
       return Response.json(
         { error: `Only ${status.remaining} place${status.remaining === 1 ? "" : "s"} left for the ${ev.title}.` },
         { status: 409 },
@@ -142,7 +143,7 @@ export default async (req: Request, context: Context) => {
       phone: phone || undefined,
       notes: notes || undefined,
       guests,
-      meals,
+      picks,
       total,
       source: "manual",
       paymentMethod,
@@ -270,13 +271,13 @@ export default async (req: Request, context: Context) => {
       return Response.json({ error: `Guests must be between 1 and ${ev.maxPerBooking}.` }, { status: 400 });
     }
 
-    // Menu events: the meals list has to keep matching the number of places.
-    let nextMeals = booking.meals;
-    if (ev.menu) {
+    // Menu events: the choices have to keep matching the number of places.
+    let nextPicks = picksOf(booking, ev);
+    if (ev.courses) {
       try {
-        nextMeals = parseMeals(body.meals ?? booking.meals, ev, nextGuests);
+        nextPicks = parsePicks(body.picks ?? nextPicks, ev, nextGuests);
       } catch {
-        return Response.json({ error: "Choose a meal for every place." }, { status: 400 });
+        return Response.json({ error: "Choose a menu option for every place." }, { status: 400 });
       }
     }
 
@@ -287,7 +288,7 @@ export default async (req: Request, context: Context) => {
           b.ref === ref || eventIdOf(b) !== ev.id || !isReserving(b.status) ? sum : sum + b.guests,
         0,
       );
-      const remainingForThis = Math.max(0, ev.capacity - otherTaken);
+      const remainingForThis = ev.capacity === null ? Infinity : Math.max(0, ev.capacity - otherTaken);
       if (nextGuests > remainingForThis) {
         return Response.json(
           { error: `Only ${remainingForThis} place${remainingForThis === 1 ? "" : "s"} available for this booking.` },
@@ -301,7 +302,8 @@ export default async (req: Request, context: Context) => {
     booking.phone = nextPhone;
     booking.notes = nextNotes;
     booking.guests = nextGuests;
-    booking.meals = nextMeals;
+    booking.picks = nextPicks;
+    booking.meals = undefined;
     if (booking.status === "paid") {
       booking.total = Math.round(nextGuests * ev.price * 100) / 100;
     }

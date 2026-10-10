@@ -8,6 +8,7 @@ confirm their place. Repurposed from the original wine tasting booking page.
 |---|---|---|---|
 | Halloween Buffet Supper | Sat 31 Oct 2026, from 6.30pm | £20 | 60 *(placeholder — confirm)* |
 | Gin & Rum Tasting — Wheadon's Bunker | Sat 14 Nov 2026, 5.30pm | £35 (dinner: Beef Stroganoff / Cauliflower Steak (V)) | 24 |
+| Christmas Crew Lunch | Sat 19 Dec 2026, from 3pm | £27.50 (main + dessert each) | no limit; bookings close 14 Dec *(confirm)* |
 | Wine Tasting Evening *(past — closed, bookings kept in /admin)* | Sat 26 Sep 2026 | £30 | 40 |
 
 ## Adding / changing an event

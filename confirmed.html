@@ -100,6 +100,8 @@
       $('#body').innerHTML = html;
     }
 
+    let tries = 0;
+
     if (!ref) {
       render('Nothing to show', '<div class="warn">This page needs a booking reference. If you’ve just paid, check your email — the confirmation has your reference in it.</div>');
     } else {
@@ -115,7 +117,7 @@
         'Reference   ' + d.ref,
         'Name        ' + d.name,
         'Places      ' + d.guests,
-        d.meals ? 'Meals       ' + d.meals : '',
+        d.menu ? 'Menu        ' + d.menu : '',
         d.notes ? 'Notes       ' + d.notes : '',
         '',
         'Paid        ' + money(d.total),
@@ -141,7 +143,6 @@
       );
     }
 
-    let tries = 0;
     async function paidPoll() {
       tries++;
       try {

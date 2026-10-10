@@ -265,6 +265,12 @@
     .evtab small { opacity: .7; font-weight: 500; margin-left: 4px; }
     .meal-edit { display: grid; gap: 5px; }
     .meal-edit label { font-size: 11.5px; color: var(--ink-soft); display: grid; grid-template-columns: 1fr 56px; gap: 8px; align-items: center; }
+    .course-block { display: grid; gap: 5px; margin-bottom: 8px; }
+    .course-block > b { font-size: 11.5px; }
+    .kitchen { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .kitchen h3 { font: 700 13px 'Inter', sans-serif; margin: 0 0 6px; color: var(--wine-dark); }
+    .kitchen ul { margin: 0; padding: 0; list-style: none; font-size: 13.5px; }
+    .kitchen li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); }
     .meal-line { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
     .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
     .toolbar .actions { display: flex; gap: 8px; }
@@ -304,6 +310,11 @@
         <div class="stat"><div class="num" id="statPaid">–</div><div class="lbl">Paid places</div></div>
         <div class="stat"><div class="num" id="statAwaiting">–</div><div class="lbl">Awaiting payment</div></div>
         <div class="stat"><div class="num" id="statRemaining">–</div><div class="lbl">Remaining</div></div>
+      </div>
+
+      <div class="panel" id="kitchenPanel" style="display:none">
+        <h2>Kitchen totals</h2>
+        <div class="kitchen" id="kitchen"></div>
       </div>
 
       <div class="panel">
@@ -447,10 +458,19 @@
     function renderStats() {
       const st = currentEvent();
       if (!st) return;
-      statCapacity.textContent = st.capacity;
+      statCapacity.textContent = st.capacity === null ? 'No limit' : st.capacity;
       statPaid.textContent = st.paid;
       statAwaiting.textContent = st.awaitingPayment;
-      statRemaining.textContent = st.remaining;
+      statRemaining.textContent = st.remaining === null ? '–' : st.remaining;
+    }
+
+    function renderKitchen() {
+      const st = currentEvent();
+      const panel = document.getElementById('kitchenPanel');
+      if (!st || !st.kitchen) { panel.style.display = 'none'; return; }
+      panel.style.display = '';
+      document.getElementById('kitchen').innerHTML = st.kitchen.map((c) =>
+        `<div><h3>${escapeHtml(c.course)}</h3><ul>${c.items.map((i) => `<li><span>${escapeHtml(i.name)}</span><b>${i.count}</b></li>`).join('')}</ul></div>`).join('');
     }
 
     function renderTabs() {
@@ -478,52 +498,69 @@
       }
       renderTabs();
       renderStats();
+      renderKitchen();
       renderBookings();
       renderAddForm();
     }
 
-    function mealName(id) {
-      const m = (currentEvent()?.menu || []).find((x) => x.id === id);
-      return m ? m.name : id;
+    function courses() { return currentEvent()?.courses || null; }
+
+    // A booking's picks as { courseId: [itemId per place] }, including legacy flat `meals`.
+    function picksFor(b) {
+      if (b.picks) return b.picks;
+      const cs = courses();
+      if (b.meals && b.meals.length && cs && cs.length === 1) return { [cs[0].id]: b.meals };
+      return null;
     }
     function mealLine(b) {
-      if (!b.meals || !b.meals.length) return '';
-      const counts = {};
-      b.meals.forEach((id) => { counts[mealName(id)] = (counts[mealName(id)] || 0) + 1; });
-      return Object.entries(counts).map(([n, c]) => c + ' × ' + n).join(', ');
+      const cs = courses(), picks = picksFor(b);
+      if (!cs || !picks) return '';
+      return cs.map((c) => {
+        const counts = {};
+        (picks[c.id] || []).forEach((id) => {
+          const name = (c.items.find((i) => i.id === id) || {}).name || id;
+          counts[name] = (counts[name] || 0) + 1;
+        });
+        const text = Object.entries(counts).map(([n, k]) => k + ' × ' + n).join(', ');
+        return cs.length > 1 ? c.label + ': ' + text : text;
+      }).join(' · ');
     }
-    function mealCountInputs(prefix, meals) {
-      const menu = currentEvent()?.menu || [];
-      return menu.map((m) => {
-        const n = (meals || []).filter((x) => x === m.id).length;
-        return `<label>${escapeHtml(m.name)}<input type="number" min="0" max="10" value="${n}" class="${prefix}" data-meal="${m.id}" /></label>`;
-      }).join('');
+    // One block of count inputs per course (a place takes one item from each course).
+    function mealCountInputs(prefix, picks) {
+      return (courses() || []).map((c) => `<div class="course-block"><b>${escapeHtml(c.label)}</b>` + c.items.map((m) => {
+        const n = ((picks || {})[c.id] || []).filter((x) => x === m.id).length;
+        return `<label>${escapeHtml(m.name)}<input type="number" min="0" max="30" value="${n}" class="${prefix}" data-course="${c.id}" data-meal="${m.id}" /></label>`;
+      }).join('') + '</div>').join('');
     }
-    function readMealCounts(root, cls) {
-      const meals = [];
+    // Reads the count inputs back into picks; every course must cover the same number of places.
+    function readPicks(root, cls) {
+      const picks = {};
+      (courses() || []).forEach((c) => { picks[c.id] = []; });
       root.querySelectorAll('.' + cls).forEach((inp) => {
-        for (let i = 0; i < (Number(inp.value) || 0); i++) meals.push(inp.dataset.meal);
+        for (let i = 0; i < (Number(inp.value) || 0); i++) picks[inp.dataset.course].push(inp.dataset.meal);
       });
-      return meals;
+      const lens = Object.values(picks).map((l) => l.length);
+      if (lens.some((n) => n !== lens[0])) throw new Error('Each course needs the same number of choices — one per place.');
+      return picks;
     }
 
     function renderAddForm() {
       const st = currentEvent();
       if (!st) return;
-      const hasMenu = !!st.menu;
+      const hasMenu = !!st.courses;
       document.getElementById('addPlacesBox').style.display = hasMenu ? 'none' : '';
       const box = document.getElementById('addMealsBox');
       box.style.display = hasMenu ? '' : 'none';
       if (hasMenu && !box.dataset.for) {
-        box.innerHTML = '<label style="font-size:11px;display:block">Meals (one per place)</label>' + mealCountInputs('add-meal', []);
+        box.innerHTML = '<label style="font-size:11px;display:block">Menu choices (one per place, per course)</label>' + mealCountInputs('add-meal', []);
       }
       box.dataset.for = hasMenu ? st.event : '';
       if (hasMenu && box.dataset.rendered !== st.event) {
-        box.innerHTML = '<label style="font-size:11px;display:block">Meals (one per place)</label>' + mealCountInputs('add-meal', []);
+        box.innerHTML = '<label style="font-size:11px;display:block">Menu choices (one per place, per course)</label>' + mealCountInputs('add-meal', []);
         box.dataset.rendered = st.event;
       }
       document.getElementById('addGuests').max = st.maxPerBooking;
-      document.getElementById('addAmountHint').textContent = `(blank = £${st.price} × places)`;
+      document.getElementById('addAmountHint').textContent = `(blank = £${Number(st.price).toFixed(2)} × places)`;
     }
 
     function emailPill(sent) {
@@ -591,8 +628,8 @@
           <input type="email" class="f-email" placeholder="Email" value="${escapeAttr(b.email || '')}" />
           <input type="text" class="f-phone" placeholder="Phone" value="${escapeAttr(b.phone || '')}" />
         </td>
-        <td data-label="Places">${currentEvent()?.menu
-          ? `<div class="meal-edit">${mealCountInputs('f-meal', b.meals)}</div>`
+        <td data-label="Places">${courses()
+          ? `<div class="meal-edit">${mealCountInputs('f-meal', picksFor(b))}</div>`
           : `<input type="number" class="f-guests" min="1" max="${currentEvent()?.maxPerBooking || 8}" value="${b.guests}" />`}</td>
         <td data-label="Payment">${paymentCell(b)}</td>
         <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
@@ -713,9 +750,9 @@
           phone: tr.querySelector('.f-phone').value.trim(),
           notes: tr.querySelector('.f-notes').value.trim(),
         };
-        if (currentEvent()?.menu) {
-          payload.meals = readMealCounts(tr, 'f-meal');
-          payload.guests = payload.meals.length;
+        if (courses()) {
+          try { payload.picks = readPicks(tr, 'f-meal'); } catch (err) { msgEl.textContent = err.message; msgEl.className = 'row-msg err'; return; }
+          payload.guests = Object.values(payload.picks)[0].length;
         } else {
           payload.guests = Number(tr.querySelector('.f-guests').value);
         }
@@ -842,9 +879,9 @@
         showBanner('err', 'A name is required.');
         return;
       }
-      if (currentEvent()?.menu) {
-        payload.meals = readMealCounts(document.getElementById('addMealsBox'), 'add-meal');
-        payload.guests = payload.meals.length;
+      if (courses()) {
+        try { payload.picks = readPicks(document.getElementById('addMealsBox'), 'add-meal'); } catch (err) { showBanner('err', err.message); return; }
+        payload.guests = Object.values(payload.picks)[0].length;
       }
       const btn = document.getElementById('addBtn');
       btn.disabled = true;
