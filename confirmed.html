@@ -117,7 +117,7 @@
         'Reference   ' + d.ref,
         'Name        ' + d.name,
         'Places      ' + d.guests,
-        d.menu ? 'Menu        ' + d.menu : '',
+        ...((d.menu && d.menu.length) ? ['Menu'].concat(d.menu.map((l) => '\u00a0\u00a0' + l)) : []),
         d.notes ? 'Notes       ' + d.notes : '',
         '',
         'Paid        ' + money(d.total),

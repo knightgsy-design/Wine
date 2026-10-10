@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/functions";
-import { pickSummary, readBooking } from "../lib/booking.mts";
+import { placeLines, readBooking } from "../lib/booking.mts";
 import { getEvent } from "../lib/events.mts";
 import { settle } from "../lib/settle.mts";
 
@@ -26,7 +26,7 @@ export default async (req: Request, _context: Context) => {
     event: ev?.title ?? "GYC Event",
     when: ev?.when ?? "",
     where: ev?.where ?? "",
-    menu: ev ? pickSummary(booking, ev) : "",
+    menu: ev ? placeLines(booking, ev) : [],
     status: booking.status,
     name: booking.name,
     email: booking.email,

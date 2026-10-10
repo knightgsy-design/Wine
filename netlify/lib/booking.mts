@@ -15,6 +15,8 @@ export type Booking = {
   phone?: string;
   notes?: string;
   guests: number;
+  /** Who each place is for (menu events only): index = place. */
+  names?: string[];
   /** Menu choices: course id → one item id per place (index = place). */
   picks?: Record<string, string[]>;
   /** Legacy: single-course events stored a flat list. Read via picksOf(), never written. */
@@ -100,6 +102,18 @@ export function parsePicks(raw: any, ev: EventDef, guests: number): Record<strin
   return out;
 }
 
+/** Names for every place of a menu event. Throws if any is missing. */
+export function parseNames(raw: any, ev: EventDef, guests: number): string[] | undefined {
+  if (!ev.courses) return undefined;
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length !== guests) throw new Error("Please give a name for every place.");
+  return list.map((n: any, i: number) => {
+    const name = str(n, 60);
+    if (!name) throw new Error(`Please give a name for place ${i + 1}.`);
+    return name;
+  });
+}
+
 /** A booking's picks, whether stored the new way or the legacy flat `meals` way. */
 export function picksOf(b: Booking, ev: EventDef | null): Record<string, string[]> | undefined {
   if (!ev?.courses) return undefined;
@@ -122,11 +136,12 @@ export function parseDraft(raw: any, ev: EventDef) {
     throw new Error(`Please choose between 1 and ${ev.maxPerBooking} places.`);
   }
   const picks = parsePicks(raw?.picks, ev, guests);
+  const names = parseNames(raw?.names, ev, guests);
 
   // Total is computed here, never taken from the request.
   const total = Math.round(guests * ev.price * 100) / 100;
 
-  return { name, email, phone, notes, guests, picks, total };
+  return { name, email, phone, notes, guests, names, picks, total };
 }
 
 /** Seats that count against an event's cap: paid, and awaiting payment (so
@@ -193,4 +208,21 @@ export function pickSummary(b: Booking, ev: EventDef | null): string {
       return ev.courses!.length > 1 ? `${course.label}: ${text}` : text;
     })
     .join(" · ");
+}
+
+/** One line per place for the kitchen/guest: "Sam — Main: Roast turkey · Dessert: Christmas pudding". */
+export function placeLines(b: Booking, ev: EventDef | null): string[] {
+  const picks = picksOf(b, ev);
+  if (!picks || !ev?.courses) return [];
+  return Array.from({ length: b.guests }, (_, i) => {
+    const who = b.names?.[i] || `Place ${i + 1}`;
+    const what = ev.courses!
+      .map((course) => {
+        const item = course.items.find((it) => it.id === picks[course.id]?.[i]);
+        return item ? (ev.courses!.length > 1 ? `${course.label}: ${item.name}` : item.name) : null;
+      })
+      .filter(Boolean)
+      .join(" · ");
+    return `${who} — ${what}`;
+  });
 }

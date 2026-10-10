@@ -3,7 +3,7 @@
    on, so a missing email key can never lose a booking. Same pattern as
    the club's other event sites (gyc-jog-dinner, gyc-air-display-bbq).
    ------------------------------------------------------------------- */
-import { pickSummary, type Booking } from "./booking.mts";
+import { placeLines, type Booking } from "./booking.mts";
 import { getEvent, type EventDef } from "./events.mts";
 
 export type SendResult = { ok: boolean; reason?: string };
@@ -15,6 +15,7 @@ export interface EmailBooking {
   email: string;
   phone?: string;
   guests: number;
+  names?: string[];
   picks?: Record<string, string[]>;
   meals?: string[];
   notes?: string;
@@ -62,7 +63,7 @@ function money(n: number) {
 
 /** Label/value rows shared by the text and HTML versions. */
 function rows(b: EmailBooking, ev: EventDef): [string, string][] {
-  const m = pickSummary(b as Booking, ev);
+  const m = placeLines(b as Booking, ev).join("\n");
   return [
     ["Event", ev.title],
     ["When", ev.when],
@@ -81,7 +82,7 @@ function guestText(b: EmailBooking, ev: EventDef) {
   return [
     `Thanks ${b.name}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked for the ${ev.title}.`,
     "",
-    ...rows(b, ev).map(([k, v]) => `${k}: ${v}`),
+    ...rows(b, ev).map(([k, v]) => `${k}: ${v.replace(/\n/g, "\n   ")}`),
     "",
     ...ev.blurb,
     ...(ev.callout ? ["", ev.callout] : []),
@@ -95,7 +96,7 @@ function guestText(b: EmailBooking, ev: EventDef) {
  *  email clients (Outlook desktop especially) render consistently. */
 function guestHtml(b: EmailBooking, ev: EventDef) {
   const details = rows(b, ev)
-    .map(([k, v]) => `<strong>${k}:</strong> ${esc(v)}`)
+    .map(([k, v]) => `<strong>${k}:</strong> ${esc(v).replace(/\n/g, "<br>")}`)
     .join("<br>");
 
   return `<!doctype html>

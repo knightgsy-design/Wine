@@ -265,6 +265,11 @@
     .evtab small { opacity: .7; font-weight: 500; margin-left: 4px; }
     .meal-edit { display: grid; gap: 5px; }
     .meal-edit label { font-size: 11.5px; color: var(--ink-soft); display: grid; grid-template-columns: 1fr 56px; gap: 8px; align-items: center; }
+    .place-rows { display: grid; gap: 8px; margin-bottom: 8px; }
+    .place-row { display: grid; gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; grid-template-columns: 1fr auto; }
+    .place-row .p-name { grid-column: 1; }
+    .place-row .p-pick { grid-column: 1; }
+    .place-row .rm-place-btn { grid-column: 2; grid-row: 1; padding: 6px 10px; }
     .course-block { display: grid; gap: 5px; margin-bottom: 8px; }
     .course-block > b { font-size: 11.5px; }
     .kitchen { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
@@ -512,37 +517,64 @@
       if (b.meals && b.meals.length && cs && cs.length === 1) return { [cs[0].id]: b.meals };
       return null;
     }
-    function mealLine(b) {
+    // One line per place: "Sam — Main: Roast turkey · Dessert: Pudding".
+    function placeLinesFor(b) {
       const cs = courses(), picks = picksFor(b);
-      if (!cs || !picks) return '';
-      return cs.map((c) => {
-        const counts = {};
-        (picks[c.id] || []).forEach((id) => {
-          const name = (c.items.find((i) => i.id === id) || {}).name || id;
-          counts[name] = (counts[name] || 0) + 1;
-        });
-        const text = Object.entries(counts).map(([n, k]) => k + ' × ' + n).join(', ');
-        return cs.length > 1 ? c.label + ': ' + text : text;
-      }).join(' · ');
-    }
-    // One block of count inputs per course (a place takes one item from each course).
-    function mealCountInputs(prefix, picks) {
-      return (courses() || []).map((c) => `<div class="course-block"><b>${escapeHtml(c.label)}</b>` + c.items.map((m) => {
-        const n = ((picks || {})[c.id] || []).filter((x) => x === m.id).length;
-        return `<label>${escapeHtml(m.name)}<input type="number" min="0" max="30" value="${n}" class="${prefix}" data-course="${c.id}" data-meal="${m.id}" /></label>`;
-      }).join('') + '</div>').join('');
-    }
-    // Reads the count inputs back into picks; every course must cover the same number of places.
-    function readPicks(root, cls) {
-      const picks = {};
-      (courses() || []).forEach((c) => { picks[c.id] = []; });
-      root.querySelectorAll('.' + cls).forEach((inp) => {
-        for (let i = 0; i < (Number(inp.value) || 0); i++) picks[inp.dataset.course].push(inp.dataset.meal);
+      if (!cs || !picks) return [];
+      return Array.from({ length: b.guests }, (_, i) => {
+        const who = (b.names && b.names[i]) || 'Place ' + (i + 1);
+        const what = cs.map((c) => {
+          const it = c.items.find((x) => x.id === (picks[c.id] || [])[i]);
+          return it ? (cs.length > 1 ? c.label + ': ' + it.name : it.name) : '';
+        }).filter(Boolean).join(' · ');
+        return who + ' — ' + what;
       });
-      const lens = Object.values(picks).map((l) => l.length);
-      if (lens.some((n) => n !== lens[0])) throw new Error('Each course needs the same number of choices — one per place.');
-      return picks;
     }
+
+    // Editable place rows (menu events): a name and one choice per course, per place.
+    function placeRowHTML(name, choice) {
+      const cs = courses() || [];
+      return `<div class="place-row"><input class="p-name" placeholder="Guest name" maxlength="60" value="${escapeAttr(name || '')}" />` +
+        cs.map((c) => `<select class="p-pick" data-course="${c.id}"><option value="">${escapeHtml(c.label)}…</option>` +
+          c.items.map((it) => `<option value="${it.id}"${(choice || {})[c.id] === it.id ? ' selected' : ''}>${escapeHtml(it.name)}</option>`).join('') + '</select>').join('') +
+        '<button type="button" class="btn small ghost rm-place-btn" title="Remove this place">×</button></div>';
+    }
+    function placeRowsHTML(b) {
+      const picks = (b && picksFor(b)) || {};
+      const n = b ? b.guests : 1;
+      return '<div class="place-rows">' + Array.from({ length: n }, (_, i) => {
+        const choice = {};
+        Object.keys(picks).forEach((cid) => { choice[cid] = picks[cid][i]; });
+        return placeRowHTML(b && b.names ? b.names[i] : '', choice);
+      }).join('') + '</div><button type="button" class="btn small ghost add-place-btn">+ Add place</button>';
+    }
+    // Reads the rows back; every place needs a name and a choice for every course.
+    function readPlaces(root) {
+      const rows = [...root.querySelectorAll('.place-row')];
+      if (!rows.length) throw new Error('Add at least one place.');
+      const names = [], picks = {};
+      (courses() || []).forEach((c) => { picks[c.id] = []; });
+      rows.forEach((row, i) => {
+        const name = row.querySelector('.p-name').value.trim();
+        if (!name) throw new Error('Place ' + (i + 1) + ' needs a name.');
+        names.push(name);
+        row.querySelectorAll('.p-pick').forEach((sel) => {
+          if (!sel.value) throw new Error('Place ' + (i + 1) + ' needs a choice for every course.');
+          picks[sel.dataset.course].push(sel.value);
+        });
+      });
+      return { names, picks, guests: rows.length };
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('add-place-btn')) {
+        const rows = e.target.parentElement.querySelector('.place-rows');
+        rows.insertAdjacentHTML('beforeend', placeRowHTML('', {}));
+      }
+      if (e.target.classList.contains('rm-place-btn')) {
+        const rows = e.target.closest('.place-rows');
+        if (rows.querySelectorAll('.place-row').length > 1) e.target.closest('.place-row').remove();
+      }
+    });
 
     function renderAddForm() {
       const st = currentEvent();
@@ -551,12 +583,8 @@
       document.getElementById('addPlacesBox').style.display = hasMenu ? 'none' : '';
       const box = document.getElementById('addMealsBox');
       box.style.display = hasMenu ? '' : 'none';
-      if (hasMenu && !box.dataset.for) {
-        box.innerHTML = '<label style="font-size:11px;display:block">Menu choices (one per place, per course)</label>' + mealCountInputs('add-meal', []);
-      }
-      box.dataset.for = hasMenu ? st.event : '';
       if (hasMenu && box.dataset.rendered !== st.event) {
-        box.innerHTML = '<label style="font-size:11px;display:block">Menu choices (one per place, per course)</label>' + mealCountInputs('add-meal', []);
+        box.innerHTML = '<label style="font-size:11px;display:block">Guests &amp; menu choices</label>' + placeRowsHTML(null);
         box.dataset.rendered = st.event;
       }
       document.getElementById('addGuests').max = st.maxPerBooking;
@@ -599,7 +627,7 @@
           <div class="guest-meta">
             ${b.email ? `<a href="mailto:${escapeAttr(b.email)}">${escapeHtml(b.email)}</a>` : '<span class="muted">no email</span>'}${b.phone ? ' &middot; <a href="tel:' + escapeAttr(b.phone) + '">' + escapeHtml(b.phone) + '</a>' : ''}
           </div>
-          ${mealLine(b) ? `<div class="meal-line">🍽️ ${escapeHtml(mealLine(b))}</div>` : ''}
+          ${placeLinesFor(b).map((l) => `<div class="meal-line">🍽️ ${escapeHtml(l)}</div>`).join('')}
           <div class="guest-ref">${escapeHtml(b.ref)}</div>
         </td>
         <td data-label="Places" class="num-cell">${b.guests}</td>
@@ -629,7 +657,7 @@
           <input type="text" class="f-phone" placeholder="Phone" value="${escapeAttr(b.phone || '')}" />
         </td>
         <td data-label="Places">${courses()
-          ? `<div class="meal-edit">${mealCountInputs('f-meal', picksFor(b))}</div>`
+          ? `<div class="meal-edit">${placeRowsHTML(b)}</div>`
           : `<input type="number" class="f-guests" min="1" max="${currentEvent()?.maxPerBooking || 8}" value="${b.guests}" />`}</td>
         <td data-label="Payment">${paymentCell(b)}</td>
         <td data-label="Notes"><textarea class="f-notes">${escapeHtml(b.notes || '')}</textarea></td>
@@ -751,8 +779,7 @@
           notes: tr.querySelector('.f-notes').value.trim(),
         };
         if (courses()) {
-          try { payload.picks = readPicks(tr, 'f-meal'); } catch (err) { msgEl.textContent = err.message; msgEl.className = 'row-msg err'; return; }
-          payload.guests = Object.values(payload.picks)[0].length;
+          try { Object.assign(payload, readPlaces(tr)); } catch (err) { msgEl.textContent = err.message; msgEl.className = 'row-msg err'; return; }
         } else {
           payload.guests = Number(tr.querySelector('.f-guests').value);
         }
@@ -880,8 +907,7 @@
         return;
       }
       if (courses()) {
-        try { payload.picks = readPicks(document.getElementById('addMealsBox'), 'add-meal'); } catch (err) { showBanner('err', err.message); return; }
-        payload.guests = Object.values(payload.picks)[0].length;
+        try { Object.assign(payload, readPlaces(document.getElementById('addMealsBox'))); } catch (err) { showBanner('err', err.message); return; }
       }
       const btn = document.getElementById('addBtn');
       btn.disabled = true;
@@ -891,7 +917,8 @@
         renderAll(data);
         ['addName', 'addEmail', 'addPhone', 'addBy', 'addAmount', 'addNotes'].forEach((id) => (document.getElementById(id).value = ''));
         document.getElementById('addGuests').value = 1;
-        document.querySelectorAll('.add-meal').forEach((i) => (i.value = 0));
+        document.getElementById('addMealsBox').dataset.rendered = '';
+        renderAddForm();
         addSendCheckbox.checked = false;
         const extra = data.emailed === 'pending-payment' ? ' — seats held, pending payment at the door.'
           : data.emailed === true ? ' and emailed.'

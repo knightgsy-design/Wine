@@ -8,6 +8,7 @@ import {
   key as bookingKey,
   listBookings,
   makeRef,
+  parseNames,
   parsePicks,
   picksOf,
   readBooking,
@@ -101,8 +102,10 @@ export default async (req: Request, context: Context) => {
     }
 
     let picks: Record<string, string[]> | undefined;
+    let names: string[] | undefined;
     try {
       picks = parsePicks(body.picks, ev, guests);
+      names = parseNames(body.names, ev, guests);
     } catch (e: any) {
       return Response.json({ error: e.message }, { status: 400 });
     }
@@ -143,6 +146,7 @@ export default async (req: Request, context: Context) => {
       phone: phone || undefined,
       notes: notes || undefined,
       guests,
+      names,
       picks,
       total,
       source: "manual",
@@ -273,11 +277,13 @@ export default async (req: Request, context: Context) => {
 
     // Menu events: the choices have to keep matching the number of places.
     let nextPicks = picksOf(booking, ev);
+    let nextNames = booking.names;
     if (ev.courses) {
       try {
         nextPicks = parsePicks(body.picks ?? nextPicks, ev, nextGuests);
+        nextNames = parseNames(body.names ?? nextNames, ev, nextGuests);
       } catch {
-        return Response.json({ error: "Choose a menu option for every place." }, { status: 400 });
+        return Response.json({ error: "Every place needs a name and a menu choice." }, { status: 400 });
       }
     }
 
@@ -303,6 +309,7 @@ export default async (req: Request, context: Context) => {
     booking.notes = nextNotes;
     booking.guests = nextGuests;
     booking.picks = nextPicks;
+    booking.names = nextNames;
     booking.meals = undefined;
     if (booking.status === "paid") {
       booking.total = Math.round(nextGuests * ev.price * 100) / 100;

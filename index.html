@@ -140,6 +140,7 @@
     textarea { resize: vertical; min-height: 64px; }
     .meals { display: grid; gap: 10px; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, white); border: 1px dashed color-mix(in srgb, var(--accent) 55%, white); }
     .meals > b { font-size: 13px; }
+    .meal-help { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
     .meal-guest { display: grid; gap: 7px; padding-bottom: 10px; border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, white); }
     .meal-guest:last-child { border-bottom: 0; padding-bottom: 0; }
     .meal-guest > span { font-weight: 600; font-size: 13.5px; }
@@ -443,15 +444,29 @@
         if (!courses) { mealsEl.hidden = true; return; }
         const n = Number(guestsSel.value || 1);
         const keep = {};
-        mealsEl.querySelectorAll('select').forEach((sel) => { keep[sel.name] = sel.value; });
+        mealsEl.querySelectorAll('select, input').forEach((el) => { keep[el.name] = el.value; });
         const two = courses.length > 1;
-        mealsEl.innerHTML = `<b>Choose ${two ? 'a ' + courses.map((c) => c.label.toLowerCase()).join(' and a ') : 'a meal'} for each place</b>` +
-          Array.from({ length: n }, (_, i) => `<div class="meal-guest"><span>Place ${i + 1}</span>${courses.map((c) => `
+        mealsEl.innerHTML = `<b>Who's coming, and what would they like?</b><span class="meal-help">Enter each guest's name and choose ${two ? 'a ' + courses.map((c) => c.label.toLowerCase()).join(' and a ') : 'a meal'} for them, so the kitchen knows who ordered what.</span>` +
+          Array.from({ length: n }, (_, i) => `<div class="meal-guest"><input name="guest_${i}" placeholder="Place ${i + 1}: guest name" maxlength="60" autocomplete="off" required value="${esc(keep[`guest_${i}`] ?? '')}" />${courses.map((c) => `
             <div class="meal-row"><span>${esc(c.label)}</span><select name="pick_${c.id}_${i}" required>
-              <option value="">Select…</option>${c.items.map((it) => `<option value="${it.id}"${keep[`pick_${c.id}_${i}`] === it.id ? ' selected' : ''}>${esc(it.name)}${tagList(it.tags).length ? ' (' + tagList(it.tags).join(', ') + ')' : ''}</option>`).join('')}
+              <option value="">Select…</option>${c.items.map((it) => `<option value="${it.id}"${keep[`pick_${c.id}_${i}`] === it.id ? ' selected' : ''}>${esc(it.name)}${(it.tags || []).length ? ' (' + it.tags.join(', ') + ')' : ''}</option>`).join('')}
             </select></div>`).join('')}</div>`).join('');
         mealsEl.hidden = false;
+        syncFirstName();
       }
+
+      // Place 1 is usually the person booking: fill their name in until they type something else.
+      let firstTouched = false;
+      function syncFirstName() {
+        const g0 = form.elements.guest_0;
+        if (!g0) return;
+        g0.addEventListener('input', () => { firstTouched = true; });
+        if (!g0.value && !firstTouched) g0.value = form.elements.name.value;
+      }
+      form.elements.name.addEventListener('input', () => {
+        const g0 = form.elements.guest_0;
+        if (g0 && !firstTouched) g0.value = form.elements.name.value;
+      });
 
       function fillGuests(max) {
         const prev = guestsSel.value;
@@ -516,6 +531,8 @@
         };
         if (!payload.name || !payload.email) return showErr('Please enter your name and email.');
         if (courses) {
+          payload.names = Array.from({ length: guests }, (_, i) => (f[`guest_${i}`]?.value || '').trim());
+          if (payload.names.some((n) => !n)) return showErr('Please give a name for every place.');
           payload.picks = {};
           for (const c of courses) {
             payload.picks[c.id] = Array.from({ length: guests }, (_, i) => f[`pick_${c.id}_${i}`]?.value || '');
