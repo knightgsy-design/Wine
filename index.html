@@ -122,6 +122,7 @@
     .facts .i { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, white); font-size: 16px; }
     .callout { margin-top: 16px; padding: 13px 16px; border-left: 4px solid var(--accent-ink); background: color-mix(in srgb, var(--accent) 9%, white); border-radius: 8px; font-size: 14px; line-height: 1.55; }
 
+    .closes { margin: -4px 0 14px; font-size: 13.5px; color: var(--ink-soft); }
     .avail { margin-top: 18px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; }
     .avail-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
     .avail .count { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 28px; color: var(--sea); }
@@ -370,13 +371,9 @@
 
         <div class="card" data-menucard hidden></div>
 
-        <div class="avail">
-          <div class="avail-top"><span class="count" data-count>–</span><span class="label" data-label>checking availability…</span></div>
-          <div class="bar" data-barwrap><i data-bar></i></div>
-        </div>
-
         <div class="card" id="book-${ev.id}">
           <h3>Book &amp; pay</h3>
+          <p class="closes" data-closes hidden></p>
           <form data-form novalidate>
             <div class="two">
               <div class="field"><label>Full name</label><input name="name" autocomplete="name" required /></div>
@@ -481,23 +478,15 @@
       function applyStatus(s) {
         price = s.price ?? price;
         courses = s.courses || null;
-        const unlimited = s.capacity === null || s.capacity === undefined;
-        const remaining = unlimited ? Infinity : Math.max(0, s.remaining);
         const closed = s.bookable === false;
-        const soldOut = !unlimited && remaining <= 0;
+        const soldOut = !!s.soldOut;
 
-        if (unlimited) {
-          $('[data-count]', panel).textContent = closed ? 'Closed' : 'Open';
-          $('[data-label]', panel).textContent = closed ? 'Booking has closed'
-            : s.closesAt ? 'No limit on numbers. Book by ' + new Date(s.closesAt + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.'
-            : 'No limit on numbers';
-          $('[data-barwrap]', panel).hidden = true;
-        } else {
-          $('[data-count]', panel).textContent = remaining;
-          $('[data-label]', panel).textContent = `${remaining === 1 ? 'place' : 'places'} left of ${s.capacity}`;
-          $('[data-bar]', panel).style.width = Math.min(100, Math.round(((s.capacity - remaining) / s.capacity) * 100)) + '%';
-        }
         $('[data-price]', panel).textContent = money(price) + ' per head';
+        const closes = $('[data-closes]', panel);
+        if (s.closesAt && !closed) {
+          closes.textContent = 'Book by ' + new Date(s.closesAt + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.';
+          closes.hidden = false;
+        } else closes.hidden = true;
 
         const full = $('[data-full]', panel);
         full.innerHTML = closed
@@ -506,7 +495,7 @@
         form.style.display = closed || soldOut ? 'none' : 'grid';
         full.classList.toggle('show', closed || soldOut);
         renderMenuCard();
-        fillGuests(Math.max(1, Math.min(s.maxPerBooking ?? ev.maxPerBooking, remaining)));
+        fillGuests(Math.max(1, s.maxGuests ?? s.maxPerBooking ?? ev.maxPerBooking));
       }
 
       async function load() {
@@ -514,7 +503,6 @@
           const r = await fetch('/api/booking?event=' + encodeURIComponent(ev.id));
           applyStatus(await r.json());
         } catch (e) {
-          $('[data-label]', panel).textContent = 'availability unavailable — please refresh';
           fillGuests(ev.maxPerBooking);
         }
       }

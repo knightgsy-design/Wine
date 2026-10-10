@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/functions";
-import { capacityStatus, listBookings, makeRef, parseDraft, str, writeBooking, type Booking } from "../lib/booking.mts";
+import { capacityStatus, listBookings, makeRef, parseDraft, publicStatus, str, writeBooking, type Booking } from "../lib/booking.mts";
 import { getEvent, isBookable } from "../lib/events.mts";
 import { createCheckout } from "../lib/services.mts";
 
@@ -35,7 +35,7 @@ export default async (req: Request, _context: Context) => {
           status.remaining === 0
             ? `Sorry, the ${ev.title} is fully booked.`
             : `Only ${status.remaining} place${status.remaining === 1 ? "" : "s"} left — please choose a smaller number.`,
-        ...status,
+        ...publicStatus(status),
       },
       { status: 409 },
     );

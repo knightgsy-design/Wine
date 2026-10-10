@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import {
   allEventStatuses,
   capacityStatus,
+  publicStatus,
   eventIdOf,
   isReserving,
   isValidEmail,
@@ -62,7 +63,7 @@ export default async (req: Request, context: Context) => {
     if (!ev || !ev.open) {
       return Response.json({ error: "Unknown event." }, { status: 404 });
     }
-    return Response.json(capacityStatus(bookings, ev));
+    return Response.json(publicStatus(capacityStatus(bookings, ev)));
   }
 
   // ---- POST: admin-only — record a booking paid outside the online form

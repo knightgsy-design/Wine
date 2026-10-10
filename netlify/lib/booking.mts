@@ -188,6 +188,24 @@ export function kitchenTotals(active: Booking[], ev: EventDef) {
   }));
 }
 
+/** What the public booking page may know: never how many have booked or how many places remain. */
+export function publicStatus(status: ReturnType<typeof capacityStatus>) {
+  const soldOut = status.remaining !== null && status.remaining <= 0;
+  return {
+    event: status.event,
+    title: status.title,
+    price: status.price,
+    maxPerBooking: status.maxPerBooking,
+    // how many places one booking may ask for right now (the form's dropdown limit)
+    maxGuests: status.remaining === null ? status.maxPerBooking : Math.min(status.maxPerBooking, status.remaining),
+    open: status.open,
+    bookable: status.bookable,
+    soldOut,
+    closesAt: status.closesAt,
+    courses: status.courses,
+  };
+}
+
 /** Status for every event at once — what the admin page wants. */
 export function allEventStatuses(bookings: Booking[]) {
   return Object.fromEntries(Object.values(EVENTS).map((ev) => [ev.id, capacityStatus(bookings, ev)]));
