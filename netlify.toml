@@ -13,3 +13,8 @@
   from = "/confirmed"
   to = "/confirmed.html"
   status = 200
+
+[[redirects]]
+  from = "/new-members"
+  to = "/new-members.html"
+  status = 200

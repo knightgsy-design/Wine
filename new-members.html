@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>RSVP: GYC New Members, Sponsors and Helpers Party</title>
+  <style>
+    :root {
+      --navy: #0a2240;
+      --gold: #b99a45;
+      --gold-dark: #a08838;
+      --ink: #14202e;
+      --soft: #4d5b6d;
+      --line: #cfd7e1;
+      --ground: #eef2f6;
+      --err: #a3372f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--ground);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 28px 16px 30px;
+      text-align: center;
+    }
+    .inner { max-width: 560px; margin: 0 auto; }
+    .burgee { display: block; width: 120px; height: auto; margin: 0 auto 20px; }
+    h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 18px; }
+    .facts { list-style: none; margin: 0; padding: 0; font-size: 1.05rem; }
+    .facts li { padding: 4px 0; }
+    .facts strong { color: var(--gold); font-weight: 700; }
+
+    main { padding: 0 16px 40px; }
+    .card {
+      max-width: 560px;
+      margin: -14px auto 0;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px 16px 24px;
+    }
+    .intro { margin: 0 0 22px; font-size: 1.05rem; }
+
+    form { display: grid; gap: 20px; }
+    .field { display: grid; gap: 6px; }
+    label, legend { font-weight: 700; font-size: .95rem; padding: 0; }
+    .opt { font-weight: 400; color: var(--soft); }
+    input[type="text"], input[type="email"], textarea {
+      font: inherit;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #9aa7b6;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    input:focus-visible, textarea:focus-visible, button:focus-visible, .radio input:focus-visible + span {
+      outline: 3px solid var(--navy);
+      outline-offset: 2px;
+    }
+    fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .radio {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px; border: 1px solid #9aa7b6; border-radius: 6px; cursor: pointer;
+    }
+    .radio input { width: 20px; height: 20px; margin: 0; accent-color: var(--navy); flex: none; }
+    .radio:has(input:checked) { border-color: var(--navy); background: #eaf0f7; }
+
+    button {
+      font: inherit; font-weight: 700; font-size: 1.05rem;
+      background: var(--gold); color: var(--navy);
+      border: 0; border-radius: 6px; padding: 14px 18px; cursor: pointer;
+    }
+    button:hover { background: var(--gold-dark); }
+    button:disabled { opacity: .6; cursor: wait; }
+
+    .msg { margin: 0; padding: 14px; border-radius: 6px; font-size: 1.05rem; }
+    .msg a { color: inherit; font-weight: 700; }
+    .thanks { background: #e8f3ec; border: 1px solid #2f6b45; color: #1d4a2e; }
+    .error { background: #fbeceb; border: 1px solid var(--err); color: #7a251f; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <img class="burgee" src="/assets/gyc-burgee.png" alt="Guernsey Yacht Club burgee" />
+      <h1>GYC New Members, Sponsors and Helpers Party</h1>
+      <ul class="facts">
+        <li><strong>Wednesday 18 November 2026, 18:00</strong></li>
+        <li>The Club House, Castle Emplacement</li>
+        <li>Free</li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <p class="intro">A chance to say thank you, and to meet the people you'll be sailing and socialising with. Let us know you're coming so we can plan the food.</p>
+
+      <form id="rsvp" name="new-members-rsvp" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="new-members-rsvp" />
+        <input type="hidden" name="subject" value="RSVP: New Members Party 18 Nov (%{submissionId})" />
+        <p hidden><label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+
+        <div class="field">
+          <label for="attendees">Name(s) attending</label>
+          <input type="text" id="attendees" name="attendees" required autocomplete="name" placeholder="e.g. Jane Le Page and Tom Le Page" />
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+
+        <fieldset>
+          <legend>I'm coming as</legend>
+          <label class="radio"><input type="radio" name="role" value="New member" required /><span>New member</span></label>
+          <label class="radio"><input type="radio" name="role" value="Sponsor" /><span>Sponsor</span></label>
+          <label class="radio"><input type="radio" name="role" value="Helper / volunteer" /><span>Helper / volunteer</span></label>
+        </fieldset>
+
+        <div class="field">
+          <label for="dietary">Dietary requirements <span class="opt">(optional)</span></label>
+          <textarea id="dietary" name="dietary"></textarea>
+        </div>
+
+        <button type="submit" id="send">Send my RSVP</button>
+        <p class="msg error" id="error" role="alert" hidden>Sorry, your RSVP didn't go through. Please try again, or email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a>.</p>
+      </form>
+
+      <p class="msg thanks" id="thanks" role="status" hidden>Thank you, see you on the 18th. If anything changes, email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a>.</p>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('rsvp');
+      var send = document.getElementById('send');
+      var error = document.getElementById('error');
+      var thanks = document.getElementById('thanks');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        error.hidden = true;
+        send.disabled = true;
+        send.textContent = 'Sending…';
+
+        fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(new FormData(form)).toString()
+        }).then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          form.hidden = true;
+          thanks.hidden = false;
+          thanks.scrollIntoView({ block: 'center' });
+        }).catch(function () {
+          error.hidden = false;
+          send.disabled = false;
+          send.textContent = 'Send my RSVP';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
