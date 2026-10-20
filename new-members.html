@@ -52,7 +52,7 @@
 
     form { display: grid; gap: 20px; }
     .field { display: grid; gap: 6px; }
-    label, legend { font-weight: 700; font-size: .95rem; padding: 0; }
+    label { font-weight: 700; font-size: .95rem; padding: 0; }
     .opt { font-weight: 400; color: var(--soft); }
     input[type="text"], input[type="email"], textarea {
       font: inherit;
@@ -64,18 +64,10 @@
       color: var(--ink);
     }
     textarea { min-height: 96px; resize: vertical; }
-    input:focus-visible, textarea:focus-visible, button:focus-visible, .radio input:focus-visible + span {
+    input:focus-visible, textarea:focus-visible, button:focus-visible {
       outline: 3px solid var(--navy);
       outline-offset: 2px;
     }
-    fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
-    .radio {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px; border: 1px solid #9aa7b6; border-radius: 6px; cursor: pointer;
-    }
-    .radio input { width: 20px; height: 20px; margin: 0; accent-color: var(--navy); flex: none; }
-    .radio:has(input:checked) { border-color: var(--navy); background: #eaf0f7; }
-
     button {
       font: inherit; font-weight: 700; font-size: 1.05rem;
       background: var(--gold); color: var(--navy);
@@ -99,7 +91,6 @@
       <ul class="facts">
         <li><strong>Wednesday 18 November 2026, 18:00</strong></li>
         <li>The Club House, Castle Emplacement</li>
-        <li>Free</li>
       </ul>
     </div>
   </header>
@@ -122,13 +113,6 @@
           <label for="email">Email</label>
           <input type="email" id="email" name="email" required autocomplete="email" />
         </div>
-
-        <fieldset>
-          <legend>I'm coming as</legend>
-          <label class="radio"><input type="radio" name="role" value="New member" required /><span>New member</span></label>
-          <label class="radio"><input type="radio" name="role" value="Sponsor" /><span>Sponsor</span></label>
-          <label class="radio"><input type="radio" name="role" value="Helper / volunteer" /><span>Helper / volunteer</span></label>
-        </fieldset>
 
         <div class="field">
           <label for="dietary">Dietary requirements <span class="opt">(optional)</span></label>
