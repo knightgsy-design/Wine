@@ -168,3 +168,25 @@ publish directory is the repo root and functions are picked up from
 
 - Bookings made before multi-event support have no `event` field and are treated as the wine tasting.
 - `GET /api/booking?event=<id>` is the public availability endpoint; admin `GET` returns every event's status plus all bookings.
+
+## New Members Party RSVPs (`/new-members`, admin → "New Members Party RSVPs")
+
+`/new-members` is an unlisted RSVP page (Netlify Forms, form `new-members-rsvp`;
+not linked from anywhere, `noindex`). Responses always live in Netlify's
+**Forms** tab. `/admin` has a second section, **New Members Party RSVPs**:
+names, email, dietary requirements and when each arrived, with counts, delete
+and **Export CSV**.
+
+How it gets the data:
+
+- `netlify/functions/submission-created.mts` runs automatically on every form
+  submission and keeps a copy of each new RSVP in the site's own Blobs store
+  (no email is sent; it ignores other forms). This works with no setup but only
+  covers RSVPs from the moment it's deployed.
+- `netlify/functions/rsvps.mts` (`/api/rsvps`, admin key required) serves the
+  list and handles delete. If a **`NETLIFY_API_TOKEN`** environment variable is
+  set (a Netlify personal access token: User settings → Applications →
+  Personal access tokens), it also reads the Forms tab directly, so RSVPs
+  from before the copy existed appear too, and deleting removes the RSVP from
+  the Forms tab as well. Without the token, delete only removes it from the
+  admin list.

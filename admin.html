@@ -270,6 +270,8 @@
     .place-row .p-name { grid-column: 1; }
     .place-row .p-pick { grid-column: 1; }
     .place-row .rm-place-btn { grid-column: 2; grid-row: 1; padding: 6px 10px; }
+    .sections { margin-top: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+    .rsvp-names { font-weight: 600; font-size: 14px; }
     .course-block { display: grid; gap: 5px; margin-bottom: 8px; }
     .course-block > b { font-size: 11.5px; }
     .kitchen { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
@@ -309,6 +311,12 @@
     </div>
 
     <div id="app">
+      <nav class="evtabs sections" id="sectionTabs" aria-label="Section">
+        <button class="evtab" type="button" data-section="bookings" aria-pressed="true">Event bookings</button>
+        <button class="evtab" type="button" data-section="rsvps" aria-pressed="false">New Members Party RSVPs <small id="rsvpCount"></small></button>
+      </nav>
+
+      <div id="bookingsView">
       <nav class="evtabs" id="evTabs" aria-label="Event"></nav>
       <div class="stats">
         <div class="stat"><div class="num" id="statCapacity">–</div><div class="lbl">Capacity</div></div>
@@ -400,6 +408,33 @@
         </div>
 
         <div class="banner" id="banner"></div>
+      </div>
+      </div><!-- /bookingsView -->
+
+      <div id="rsvpView" style="display:none">
+        <div class="stats" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="stat"><div class="num" id="rsvpTotal">–</div><div class="lbl">RSVPs received</div></div>
+          <div class="stat"><div class="num" id="rsvpDietary">–</div><div class="lbl">With dietary notes</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="toolbar">
+            <h2 style="margin:0;">GYC New Members, Sponsors and Helpers Party <span class="muted" style="font-family:Inter,sans-serif;font-size:13px;font-weight:400;">Wed 18 Nov 2026, 18:00</span></h2>
+            <div class="actions">
+              <button class="btn ghost small" id="rsvpRefresh">Refresh</button>
+              <button class="btn ghost small" id="rsvpExport">Export CSV</button>
+            </div>
+          </div>
+          <p class="row-msg" id="rsvpNote" style="margin:10px 0 0;color:var(--ink-soft);"></p>
+
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Name(s) attending</th><th>Email</th><th>Dietary requirements</th><th>Received</th><th></th></tr></thead>
+              <tbody id="rsvpBody"><tr class="empty-row"><td colspan="5">Loading&hellip;</td></tr></tbody>
+            </table>
+          </div>
+          <div class="banner" id="rsvpBanner"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -716,6 +751,7 @@
       try {
         await loadAll();
         localStorage.setItem(STORAGE_KEY, key);
+        loadRsvps().catch(() => {});
         gate.style.display = 'none';
         app.classList.add('show');
       } catch (e) {
@@ -931,6 +967,114 @@
         btn.disabled = false;
         btn.textContent = addBtnLabel();
       }
+    });
+
+    /* ---------- RSVPs ---------- */
+    let rsvps = [];
+    const rsvpBody = document.getElementById('rsvpBody');
+
+    async function rsvpApi(method, body) {
+      const res = await fetch('/api/rsvps', {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+      return data;
+    }
+
+    function fmtFull(iso) {
+      const d = new Date(iso);
+      return isNaN(d) ? '–' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' +
+        d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderRsvps(data) {
+      rsvps = data.rsvps || [];
+      document.getElementById('rsvpTotal').textContent = rsvps.length;
+      document.getElementById('rsvpDietary').textContent = rsvps.filter((r) => r.dietary).length;
+      document.getElementById('rsvpCount').textContent = rsvps.length;
+
+      const note = document.getElementById('rsvpNote');
+      note.className = 'row-msg';
+      if (data.syncError) {
+        note.className = 'row-msg err';
+        note.textContent = "Couldn't read Netlify's Forms tab (" + data.syncError + "), so only RSVPs received since this page went live are shown.";
+      } else if (!data.netlifyTokenSet) {
+        note.textContent = "Showing RSVPs received since this page went live. To also show earlier ones, and delete from Netlify's Forms tab too, add a NETLIFY_API_TOKEN to the site.";
+      } else {
+        note.textContent = "Showing everything in Netlify's Forms tab. Deleting here removes it there too.";
+      }
+
+      if (!rsvps.length) {
+        rsvpBody.innerHTML = '<tr class="empty-row"><td colspan="5">No RSVPs yet.</td></tr>';
+        return;
+      }
+      rsvpBody.innerHTML = rsvps.map((r) => `
+        <tr data-id="${escapeAttr(r.id)}">
+          <td data-label="Name(s) attending"><div class="rsvp-names">${escapeHtml(r.name || '—')}</div></td>
+          <td data-label="Email">${r.email ? `<a href="mailto:${escapeAttr(r.email)}">${escapeHtml(r.email)}</a>` : '<span class="muted">—</span>'}</td>
+          <td data-label="Dietary requirements">${r.dietary ? escapeHtml(r.dietary) : '<span class="muted">—</span>'}</td>
+          <td class="created" data-label="Received">${fmtFull(r.createdAt)}</td>
+          <td><div class="row-actions"><button class="btn small danger rsvp-del">Delete</button></div><div class="row-msg"></div></td>
+        </tr>`).join('');
+    }
+
+    async function loadRsvps() {
+      renderRsvps(await rsvpApi('GET'));
+    }
+
+    function showRsvpBanner(kind, text) {
+      const el = document.getElementById('rsvpBanner');
+      el.textContent = text; el.className = 'banner show ' + kind;
+      setTimeout(() => { el.className = 'banner'; }, 5000);
+    }
+
+    document.getElementById('rsvpRefresh').addEventListener('click', () => loadRsvps().catch((e) => showRsvpBanner('err', e.message)));
+
+    rsvpBody.addEventListener('click', async (e) => {
+      if (!e.target.classList.contains('rsvp-del')) return;
+      const tr = e.target.closest('tr');
+      const r = rsvps.find((x) => x.id === tr.dataset.id);
+      if (!confirm('Delete the RSVP from ' + (r ? r.name : 'this guest') + "? This can't be undone.")) return;
+      e.target.disabled = true;
+      try {
+        const out = await rsvpApi('DELETE', { id: tr.dataset.id });
+        await loadRsvps();
+        showRsvpBanner('ok', out.alsoRemovedFromNetlify ? "RSVP deleted (also removed from Netlify's Forms tab)." : "RSVP deleted from this list. It is still in Netlify's Forms tab until you remove it there.");
+      } catch (err) {
+        e.target.disabled = false;
+        tr.querySelector('.row-msg').textContent = err.message;
+        tr.querySelector('.row-msg').className = 'row-msg err';
+      }
+    });
+
+    // CSV for the caterers/organisers. Cells starting with = + - @ are neutralised so Excel won't run them.
+    document.getElementById('rsvpExport').addEventListener('click', () => {
+      const cell = (v) => {
+        let t = String(v ?? '');
+        if (/^[=+\-@]/.test(t)) t = "'" + t;
+        return '"' + t.replace(/"/g, '""') + '"';
+      };
+      const rows = [['Name(s) attending', 'Email', 'Dietary requirements', 'Received']]
+        .concat(rsvps.map((r) => [r.name, r.email, r.dietary, r.createdAt]));
+      const blob = new Blob(['\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'new-members-party-rsvps.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    document.getElementById('sectionTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-section]');
+      if (!btn) return;
+      const which = btn.dataset.section;
+      document.querySelectorAll('#sectionTabs .evtab').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      document.getElementById('bookingsView').style.display = which === 'bookings' ? '' : 'none';
+      document.getElementById('rsvpView').style.display = which === 'rsvps' ? '' : 'none';
+      if (which === 'rsvps') loadRsvps().catch((err) => showRsvpBanner('err', err.message));
     });
 
     // Auto-unlock if a key is already saved in this browser.
