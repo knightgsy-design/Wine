@@ -1,11 +1,17 @@
 import { store } from "./booking.mts";
 
-/** The unlisted /new-members form (see new-members.html). */
-export const RSVP_FORM = "new-members-rsvp";
+/** The unlisted RSVP forms, by Netlify form name. To add one: add the page, then an entry here. */
+export const RSVP_FORMS: Record<string, { title: string; when: string; hasEmail: boolean }> = {
+  "new-members-rsvp": { title: "GYC New Members, Sponsors and Helpers Party", when: "Wed 18 Nov 2026, 18:00", hasEmail: true },
+  "agm-dinner-rsvp": { title: "AGM Dinner", when: "Wed 11 Nov 2026, after the AGM", hasEmail: false },
+};
+export const DEFAULT_FORM = "new-members-rsvp"; // copies stored before there were two forms
 
 export type Rsvp = {
   /** Netlify's submission id — the same id in our copy and in the Forms tab */
   id: string;
+  /** Netlify form name, e.g. "agm-dinner-rsvp" */
+  form: string;
   name: string;
   email: string;
   dietary: string;
@@ -25,6 +31,7 @@ export function fromSubmission(sub: any, from: Rsvp["from"]): Rsvp | null {
   const d = sub?.data ?? {};
   return {
     id,
+    form: s(sub?.form_name, 80) || DEFAULT_FORM,
     name: s(d.attendees, 300),
     email: s(d.email, 200),
     dietary: s(d.dietary, 2000),
@@ -45,7 +52,7 @@ export async function listStoredRsvps(): Promise<Rsvp[]> {
   const st = store();
   const { blobs } = await st.list({ prefix: "rsvp/" });
   const all = await Promise.all(blobs.map((b) => st.get(b.key, { type: "json" }) as Promise<Rsvp>));
-  return all.filter(Boolean);
+  return all.filter(Boolean).map((r) => ({ ...r, form: r.form || DEFAULT_FORM }));
 }
 
 /** Our stored copies win; anything only Netlify has is added. Newest first. */
@@ -66,19 +73,20 @@ async function nf(token: string, path: string, init?: RequestInit) {
 export async function fetchNetlifyRsvps(token: string, siteId: string): Promise<Rsvp[]> {
   const formsRes = await nf(token, `/sites/${encodeURIComponent(siteId)}/forms`);
   if (!formsRes.ok) throw new Error(`Netlify refused the token (${formsRes.status})`);
-  const form = ((await formsRes.json()) as any[]).find((f) => f.name === RSVP_FORM);
-  if (!form) return [];
+  const forms = ((await formsRes.json()) as any[]).filter((f) => Object.hasOwn(RSVP_FORMS, f.name));
 
   const out: Rsvp[] = [];
-  for (let page = 1; page <= 20; page++) {
-    const res = await nf(token, `/forms/${form.id}/submissions?per_page=100&page=${page}`);
-    if (!res.ok) throw new Error(`Couldn't read submissions (${res.status})`);
-    const batch = (await res.json()) as any[];
-    for (const sub of batch) {
-      const r = fromSubmission(sub, "netlify");
-      if (r) out.push(r);
+  for (const form of forms) {
+    for (let page = 1; page <= 20; page++) {
+      const res = await nf(token, `/forms/${form.id}/submissions?per_page=100&page=${page}`);
+      if (!res.ok) throw new Error(`Couldn't read submissions (${res.status})`);
+      const batch = (await res.json()) as any[];
+      for (const sub of batch) {
+        const r = fromSubmission({ ...sub, form_name: sub.form_name || form.name }, "netlify");
+        if (r) out.push(r);
+      }
+      if (batch.length < 100) break;
     }
-    if (batch.length < 100) break;
   }
   return out;
 }

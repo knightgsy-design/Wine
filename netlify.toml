@@ -18,3 +18,8 @@
   from = "/new-members"
   to = "/new-members.html"
   status = 200
+
+[[redirects]]
+  from = "/agm-dinner"
+  to = "/agm-dinner.html"
+  status = 200

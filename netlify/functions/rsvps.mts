@@ -5,6 +5,7 @@ import {
   fetchNetlifyRsvps,
   listStoredRsvps,
   mergeRsvps,
+  RSVP_FORMS,
 } from "../lib/rsvp.mts";
 
 function isAdmin(req: Request): boolean {
@@ -37,6 +38,7 @@ export default async (req: Request, context: Context) => {
     }
     return Response.json({
       rsvps: mergeRsvps(stored, netlify),
+      forms: Object.entries(RSVP_FORMS).map(([id, f]) => ({ id, ...f })),
       // whether earlier submissions (before this admin page existed) can be shown
       netlifySync: Boolean(token && siteId) && !syncError,
       netlifyTokenSet: Boolean(token),

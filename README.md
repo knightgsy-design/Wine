@@ -190,3 +190,14 @@ How it gets the data:
   from before the copy existed appear too, and deleting removes the RSVP from
   the Forms tab as well. Without the token, delete only removes it from the
   admin list.
+
+### AGM Dinner RSVP (`/agm-dinner`)
+
+A second unlisted RSVP page (Netlify form `agm-dinner-rsvp`): the dinner after
+the AGM on Wednesday 11 November 2026, £14.95 per head, menu shown (creamy pork
+stew with cumin rice; wild mushroom cannelloni). It asks only for the name(s)
+attending and dietary requirements; a submission confirms the place. No
+payment is taken and no menu choice is collected. The admin RSVPs section has
+a switch between the two forms (its CSV export is per form). To add another
+RSVP form: copy one of the pages, then add an entry to `RSVP_FORMS` in
+`netlify/lib/rsvp.mts`.

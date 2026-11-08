@@ -412,6 +412,7 @@
       </div><!-- /bookingsView -->
 
       <div id="rsvpView" style="display:none">
+        <nav class="evtabs" id="rsvpForms" aria-label="RSVP form"></nav>
         <div class="stats" style="grid-template-columns: repeat(2, 1fr);">
           <div class="stat"><div class="num" id="rsvpTotal">–</div><div class="lbl">RSVPs received</div></div>
           <div class="stat"><div class="num" id="rsvpDietary">–</div><div class="lbl">With dietary notes</div></div>
@@ -419,7 +420,7 @@
 
         <div class="panel">
           <div class="toolbar">
-            <h2 style="margin:0;">GYC New Members, Sponsors and Helpers Party <span class="muted" style="font-family:Inter,sans-serif;font-size:13px;font-weight:400;">Wed 18 Nov 2026, 18:00</span></h2>
+            <h2 style="margin:0;"><span id="rsvpTitle"></span> <span class="muted" id="rsvpWhen" style="font-family:Inter,sans-serif;font-size:13px;font-weight:400;"></span></h2>
             <div class="actions">
               <button class="btn ghost small" id="rsvpRefresh">Refresh</button>
               <button class="btn ghost small" id="rsvpExport">Export CSV</button>
@@ -429,7 +430,7 @@
 
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Name(s) attending</th><th>Email</th><th>Dietary requirements</th><th>Received</th><th></th></tr></thead>
+              <thead><tr><th>Name(s) attending</th><th class="col-email">Email</th><th>Dietary requirements</th><th>Received</th><th></th></tr></thead>
               <tbody id="rsvpBody"><tr class="empty-row"><td colspan="5">Loading&hellip;</td></tr></tbody>
             </table>
           </div>
@@ -970,7 +971,10 @@
     });
 
     /* ---------- RSVPs ---------- */
-    let rsvps = [];
+    let lastRsvpData = null;
+    let rsvps = [];          // every RSVP, all forms
+    let rsvpForms = [];      // [{ id, title, when, hasEmail }]
+    let selectedForm = null;
     const rsvpBody = document.getElementById('rsvpBody');
 
     async function rsvpApi(method, body) {
@@ -990,11 +994,38 @@
         d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
 
+    const formRsvps = () => rsvps.filter((r) => r.form === selectedForm);
+    const curForm = () => rsvpForms.find((f) => f.id === selectedForm) || { title: '', when: '', hasEmail: true };
+
     function renderRsvps(data) {
-      rsvps = data.rsvps || [];
-      document.getElementById('rsvpTotal').textContent = rsvps.length;
-      document.getElementById('rsvpDietary').textContent = rsvps.filter((r) => r.dietary).length;
+      if (data) {
+        rsvps = data.rsvps || [];
+        rsvpForms = data.forms || rsvpForms;
+        lastRsvpData = data;
+      }
+      data = lastRsvpData || {};
+      if (!selectedForm || !rsvpForms.some((f) => f.id === selectedForm)) selectedForm = (rsvpForms[0] || {}).id || null;
       document.getElementById('rsvpCount').textContent = rsvps.length;
+
+      // form switch
+      const nav = document.getElementById('rsvpForms');
+      nav.innerHTML = '';
+      rsvpForms.forEach((f) => {
+        const n = rsvps.filter((r) => r.form === f.id).length;
+        const btn = document.createElement('button');
+        btn.className = 'evtab'; btn.type = 'button';
+        btn.setAttribute('aria-pressed', String(f.id === selectedForm));
+        btn.innerHTML = escapeHtml(f.title) + ` <small>${n}</small>`;
+        btn.addEventListener('click', () => { selectedForm = f.id; renderRsvps(); });
+        nav.appendChild(btn);
+      });
+
+      const list = formRsvps(), form = curForm();
+      document.getElementById('rsvpTitle').textContent = form.title;
+      document.getElementById('rsvpWhen').textContent = form.when;
+      document.getElementById('rsvpTotal').textContent = list.length;
+      document.getElementById('rsvpDietary').textContent = list.filter((r) => r.dietary).length;
+      document.querySelectorAll('.col-email').forEach((el) => { el.style.display = form.hasEmail ? '' : 'none'; });
 
       const note = document.getElementById('rsvpNote');
       note.className = 'row-msg';
@@ -1007,14 +1038,14 @@
         note.textContent = "Showing everything in Netlify's Forms tab. Deleting here removes it there too.";
       }
 
-      if (!rsvps.length) {
+      if (!list.length) {
         rsvpBody.innerHTML = '<tr class="empty-row"><td colspan="5">No RSVPs yet.</td></tr>';
         return;
       }
-      rsvpBody.innerHTML = rsvps.map((r) => `
+      rsvpBody.innerHTML = list.map((r) => `
         <tr data-id="${escapeAttr(r.id)}">
           <td data-label="Name(s) attending"><div class="rsvp-names">${escapeHtml(r.name || '—')}</div></td>
-          <td data-label="Email">${r.email ? `<a href="mailto:${escapeAttr(r.email)}">${escapeHtml(r.email)}</a>` : '<span class="muted">—</span>'}</td>
+          ${form.hasEmail ? `<td data-label="Email" class="col-email">${r.email ? `<a href="mailto:${escapeAttr(r.email)}">${escapeHtml(r.email)}</a>` : '<span class="muted">—</span>'}</td>` : ''}
           <td data-label="Dietary requirements">${r.dietary ? escapeHtml(r.dietary) : '<span class="muted">—</span>'}</td>
           <td class="created" data-label="Received">${fmtFull(r.createdAt)}</td>
           <td><div class="row-actions"><button class="btn small danger rsvp-del">Delete</button></div><div class="row-msg"></div></td>
@@ -1057,12 +1088,13 @@
         if (/^[=+\-@]/.test(t)) t = "'" + t;
         return '"' + t.replace(/"/g, '""') + '"';
       };
-      const rows = [['Name(s) attending', 'Email', 'Dietary requirements', 'Received']]
-        .concat(rsvps.map((r) => [r.name, r.email, r.dietary, r.createdAt]));
+      const form = curForm();
+      const head = ['Name(s) attending'].concat(form.hasEmail ? ['Email'] : [], ['Dietary requirements', 'Received']);
+      const rows = [head].concat(formRsvps().map((r) => [r.name].concat(form.hasEmail ? [r.email] : [], [r.dietary, r.createdAt])));
       const blob = new Blob(['\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'new-members-party-rsvps.csv';
+      a.download = selectedForm + '.csv';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });

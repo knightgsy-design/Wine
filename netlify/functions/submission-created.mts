@@ -1,16 +1,16 @@
 import type { Context } from "@netlify/functions";
-import { RSVP_FORM, fromSubmission, saveRsvp } from "../lib/rsvp.mts";
+import { RSVP_FORMS, fromSubmission, saveRsvp } from "../lib/rsvp.mts";
 
 /**
  * Netlify runs this automatically after every form submission. It keeps a
- * copy of each new-members RSVP in the site's own storage so /admin can show
+ * copy of each RSVP (new members, AGM dinner) in the site's own storage so /admin can show
  * it without needing any API token. It sends no email and changes nothing
  * in the Forms tab. Other forms are ignored.
  */
 export default async (req: Request, _context: Context) => {
   try {
     const { payload } = await req.json();
-    if (payload?.form_name !== RSVP_FORM) return new Response("ignored", { status: 200 });
+    if (!Object.hasOwn(RSVP_FORMS, String(payload?.form_name))) return new Response("ignored", { status: 200 });
     const rsvp = fromSubmission(payload, "stored");
     if (rsvp) await saveRsvp(rsvp);
   } catch (e) {
