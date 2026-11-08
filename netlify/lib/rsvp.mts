@@ -1,9 +1,19 @@
 import { store } from "./booking.mts";
 
 /** The unlisted RSVP forms, by Netlify form name. To add one: add the page, then an entry here. */
-export const RSVP_FORMS: Record<string, { title: string; when: string; hasEmail: boolean }> = {
+type Dish = { key: string; name: string };
+export const RSVP_FORMS: Record<string, { title: string; when: string; hasEmail: boolean; dishes?: Dish[] }> = {
   "new-members-rsvp": { title: "GYC New Members, Sponsors and Helpers Party", when: "Wed 18 Nov 2026, 18:00", hasEmail: true },
-  "agm-dinner-rsvp": { title: "AGM Dinner", when: "Wed 11 Nov 2026, after the AGM", hasEmail: false },
+  "agm-dinner-rsvp": {
+    title: "AGM Dinner",
+    when: "Wed 11 Nov 2026, shortly after the AGM",
+    hasEmail: false,
+    // the page posts a `<key>_count` field per dish, which is what the kitchen totals add up
+    dishes: [
+      { key: "pork", name: "Creamy pork stew with cumin rice" },
+      { key: "mushroom", name: "Wild mushroom cannelloni" },
+    ],
+  },
 };
 export const DEFAULT_FORM = "new-members-rsvp"; // copies stored before there were two forms
 
@@ -15,6 +25,10 @@ export type Rsvp = {
   name: string;
   email: string;
   dietary: string;
+  /** One "Name: Dish" line per guest, for forms that take a dish choice */
+  menu: string;
+  /** How many of each dish (by Dish.key), for forms that take a dish choice */
+  counts: Record<string, number>;
   createdAt: string;
   /** "stored" = copied by submission-created; "netlify" = only found via the Netlify API */
   from: "stored" | "netlify";
@@ -29,12 +43,19 @@ export function fromSubmission(sub: any, from: Rsvp["from"]): Rsvp | null {
   const id = s(sub?.id, 80);
   if (!id) return null;
   const d = sub?.data ?? {};
+  const form = s(sub?.form_name, 80) || DEFAULT_FORM;
+  const counts: Record<string, number> = {};
+  for (const dish of RSVP_FORMS[form]?.dishes ?? []) {
+    counts[dish.key] = Math.max(0, Math.min(99, parseInt(String(d[`${dish.key}_count`] ?? "0"), 10) || 0));
+  }
   return {
     id,
-    form: s(sub?.form_name, 80) || DEFAULT_FORM,
+    form,
     name: s(d.attendees, 300),
     email: s(d.email, 200),
     dietary: s(d.dietary, 2000),
+    menu: s(d.menu_choices, 2000),
+    counts,
     createdAt: s(sub?.created_at, 40) || new Date().toISOString(),
     from,
   };
@@ -52,7 +73,7 @@ export async function listStoredRsvps(): Promise<Rsvp[]> {
   const st = store();
   const { blobs } = await st.list({ prefix: "rsvp/" });
   const all = await Promise.all(blobs.map((b) => st.get(b.key, { type: "json" }) as Promise<Rsvp>));
-  return all.filter(Boolean).map((r) => ({ ...r, form: r.form || DEFAULT_FORM }));
+  return all.filter(Boolean).map((r) => ({ ...r, form: r.form || DEFAULT_FORM, menu: r.menu ?? "", counts: r.counts ?? {} }));
 }
 
 /** Our stored copies win; anything only Netlify has is added. Newest first. */

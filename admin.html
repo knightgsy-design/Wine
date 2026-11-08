@@ -427,10 +427,14 @@
             </div>
           </div>
           <p class="row-msg" id="rsvpNote" style="margin:10px 0 0;color:var(--ink-soft);"></p>
+          <div id="rsvpKitchenWrap" style="display:none;margin-top:14px;">
+            <h2 style="font-size:15px;">Kitchen totals</h2>
+            <div class="kitchen" id="rsvpKitchen"></div>
+          </div>
 
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Name(s) attending</th><th class="col-email">Email</th><th>Dietary requirements</th><th>Received</th><th></th></tr></thead>
+              <thead><tr><th>Name(s) attending</th><th class="col-menu">Menu choices</th><th class="col-email">Email</th><th>Dietary requirements</th><th>Received</th><th></th></tr></thead>
               <tbody id="rsvpBody"><tr class="empty-row"><td colspan="5">Loading&hellip;</td></tr></tbody>
             </table>
           </div>
@@ -1026,6 +1030,14 @@
       document.getElementById('rsvpTotal').textContent = list.length;
       document.getElementById('rsvpDietary').textContent = list.filter((r) => r.dietary).length;
       document.querySelectorAll('.col-email').forEach((el) => { el.style.display = form.hasEmail ? '' : 'none'; });
+      const hasMenu = !!(form.dishes && form.dishes.length);
+      document.querySelectorAll('.col-menu').forEach((el) => { el.style.display = hasMenu ? '' : 'none'; });
+      const kw = document.getElementById('rsvpKitchenWrap');
+      kw.style.display = hasMenu ? '' : 'none';
+      if (hasMenu) {
+        const items = form.dishes.map((d) => `<li><span>${escapeHtml(d.name)}</span><b>${list.reduce((n, r) => n + ((r.counts || {})[d.key] || 0), 0)}</b></li>`).join('');
+        document.getElementById('rsvpKitchen').innerHTML = `<div><ul>${items}</ul></div>`;
+      }
 
       const note = document.getElementById('rsvpNote');
       note.className = 'row-msg';
@@ -1045,6 +1057,7 @@
       rsvpBody.innerHTML = list.map((r) => `
         <tr data-id="${escapeAttr(r.id)}">
           <td data-label="Name(s) attending"><div class="rsvp-names">${escapeHtml(r.name || '—')}</div></td>
+          ${hasMenu ? `<td data-label="Menu choices" class="col-menu">${r.menu ? r.menu.split('\n').map((l) => `<div class="meal-line">${escapeHtml(l)}</div>`).join('') : '<span class="muted">—</span>'}</td>` : ''}
           ${form.hasEmail ? `<td data-label="Email" class="col-email">${r.email ? `<a href="mailto:${escapeAttr(r.email)}">${escapeHtml(r.email)}</a>` : '<span class="muted">—</span>'}</td>` : ''}
           <td data-label="Dietary requirements">${r.dietary ? escapeHtml(r.dietary) : '<span class="muted">—</span>'}</td>
           <td class="created" data-label="Received">${fmtFull(r.createdAt)}</td>
@@ -1089,8 +1102,9 @@
         return '"' + t.replace(/"/g, '""') + '"';
       };
       const form = curForm();
-      const head = ['Name(s) attending'].concat(form.hasEmail ? ['Email'] : [], ['Dietary requirements', 'Received']);
-      const rows = [head].concat(formRsvps().map((r) => [r.name].concat(form.hasEmail ? [r.email] : [], [r.dietary, r.createdAt])));
+      const hasMenu = !!(form.dishes && form.dishes.length);
+      const head = ['Name(s) attending'].concat(hasMenu ? ['Menu choices'] : [], form.hasEmail ? ['Email'] : [], ['Dietary requirements', 'Received']);
+      const rows = [head].concat(formRsvps().map((r) => [r.name].concat(hasMenu ? [(r.menu || '').replace(/\n/g, '; ')] : [], form.hasEmail ? [r.email] : [], [r.dietary, r.createdAt])));
       const blob = new Blob(['\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

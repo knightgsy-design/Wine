@@ -54,6 +54,16 @@
     .menu h2 { margin: 0 0 6px; font-size: 1.05rem; }
     .menu ul { margin: 0; padding-left: 20px; }
     .menu li { padding: 2px 0; }
+    fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
+    legend { font-weight: 700; font-size: .95rem; padding: 0; margin-bottom: 10px; }
+    #guests { display: grid; gap: 12px; }
+    .guest { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
+    .guest .top { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: .9rem; }
+    .guest select { font: inherit; width: 100%; padding: 12px; border: 1px solid #9aa7b6; border-radius: 6px; background: #fff; color: var(--ink); }
+    .guest select:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+    .rm { font: inherit; font-size: .85rem; background: none; border: 0; color: var(--soft); text-decoration: underline; cursor: pointer; padding: 4px; }
+    button.add { background: #fff; color: var(--navy); border: 2px solid var(--navy); padding: 11px 14px; font-size: 1rem; }
+    button.add:hover { background: #eaf0f7; }
     form { display: grid; gap: 20px; }
     .field { display: grid; gap: 6px; }
     label { font-weight: 700; font-size: .95rem; padding: 0; }
@@ -78,6 +88,7 @@
       border: 0; border-radius: 6px; padding: 14px 18px; cursor: pointer;
     }
     button:hover { background: var(--gold-dark); }
+    button.add:hover { background: #eaf0f7; }
     button:disabled { opacity: .6; cursor: wait; }
 
     .msg { margin: 0; padding: 14px; border-radius: 6px; font-size: 1.05rem; }
@@ -94,7 +105,7 @@
       <h1>AGM Dinner</h1>
       <ul class="facts">
         <li><strong>Wednesday 11 November 2026</strong></li>
-        <li>Dinner after the AGM</li>
+        <li>Dinner shortly after the conclusion of the AGM</li>
         <li>£14.95 per head</li>
       </ul>
     </div>
@@ -117,10 +128,17 @@
         <input type="hidden" name="subject" value="RSVP: AGM Dinner (%{submissionId})" />
         <p hidden><label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
 
-        <div class="field">
-          <label for="attendees">Name(s) attending</label>
-          <input type="text" id="attendees" name="attendees" required autocomplete="name" placeholder="e.g. Jane Le Page and Tom Le Page" />
-        </div>
+        <!-- Filled in by the script from the guest rows below, so Netlify detects these fields at deploy. -->
+        <input type="hidden" name="attendees" id="attendees" />
+        <input type="hidden" name="menu_choices" id="menu_choices" />
+        <input type="hidden" name="pork_count" id="pork_count" value="0" />
+        <input type="hidden" name="mushroom_count" id="mushroom_count" value="0" />
+
+        <fieldset>
+          <legend>Who's coming, and what would they like?</legend>
+          <div id="guests"></div>
+          <button type="button" class="add" id="add">+ Add another guest</button>
+        </fieldset>
 
         <div class="field">
           <label for="dietary">Dietary requirements <span class="opt">(optional)</span></label>
@@ -137,16 +155,67 @@
 
   <script>
     (function () {
+      var DISHES = [
+        { key: 'pork', name: 'Creamy pork stew with cumin rice' },
+        { key: 'mushroom', name: 'Wild mushroom cannelloni' }
+      ];
       var form = document.getElementById('rsvp');
+      var guests = document.getElementById('guests');
       var send = document.getElementById('send');
       var error = document.getElementById('error');
       var thanks = document.getElementById('thanks');
+
+      function renumber() {
+        var rows = guests.querySelectorAll('.guest');
+        rows.forEach(function (row, i) {
+          row.querySelector('.n').textContent = 'Guest ' + (i + 1);
+          row.querySelector('.rm').hidden = rows.length === 1;
+        });
+      }
+
+      function addGuest() {
+        var row = document.createElement('div');
+        row.className = 'guest';
+        row.innerHTML =
+          '<div class="top"><span class="n"></span><button type="button" class="rm">Remove</button></div>' +
+          '<input type="text" class="g-name" required maxlength="60" autocomplete="off" aria-label="Guest name" placeholder="Name, e.g. Jane Le Page" />' +
+          '<select class="g-dish" required aria-label="Dish"><option value="">Choose a dish…</option>' +
+          DISHES.map(function (d) { return '<option value="' + d.key + '">' + d.name + '</option>'; }).join('') +
+          '</select>';
+        row.querySelector('.rm').addEventListener('click', function () { row.remove(); renumber(); });
+        guests.appendChild(row);
+        renumber();
+      }
+
+      document.getElementById('add').addEventListener('click', function () {
+        addGuest();
+        guests.lastChild.querySelector('.g-name').focus();
+      });
+      addGuest();
+
+      // Copy the rows into the plain fields Netlify records.
+      function collect() {
+        var names = [], lines = [], counts = { pork: 0, mushroom: 0 };
+        guests.querySelectorAll('.guest').forEach(function (row) {
+          var name = row.querySelector('.g-name').value.trim();
+          var dish = row.querySelector('.g-dish').value;
+          var dishName = DISHES.filter(function (d) { return d.key === dish; })[0].name;
+          names.push(name);
+          lines.push(name + ': ' + dishName);
+          counts[dish]++;
+        });
+        form.elements.attendees.value = names.join(', ');
+        form.elements.menu_choices.value = lines.join('\n');
+        form.elements.pork_count.value = counts.pork;
+        form.elements.mushroom_count.value = counts.mushroom;
+      }
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         error.hidden = true;
         send.disabled = true;
         send.textContent = 'Sending…';
+        collect();
 
         fetch('/', {
           method: 'POST',

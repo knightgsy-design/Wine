@@ -193,11 +193,14 @@ How it gets the data:
 
 ### AGM Dinner RSVP (`/agm-dinner`)
 
-A second unlisted RSVP page (Netlify form `agm-dinner-rsvp`): the dinner after
-the AGM on Wednesday 11 November 2026, £14.95 per head, menu shown (creamy pork
-stew with cumin rice; wild mushroom cannelloni). It asks only for the name(s)
-attending and dietary requirements; a submission confirms the place. No
-payment is taken and no menu choice is collected. The admin RSVPs section has
-a switch between the two forms (its CSV export is per form). To add another
-RSVP form: copy one of the pages, then add an entry to `RSVP_FORMS` in
-`netlify/lib/rsvp.mts`.
+A second unlisted RSVP page (Netlify form `agm-dinner-rsvp`): the dinner shortly
+after the conclusion of the AGM on Wednesday 11 November 2026, £14.95 per head.
+Each guest gets a row (name + a choice of creamy pork stew with cumin rice or
+wild mushroom cannelloni; "+ Add another guest" for more), plus one optional
+dietary-requirements box. A submission confirms the place; no payment is taken.
+The page copies the rows into plain fields (`attendees`, `menu_choices`,
+`pork_count`, `mushroom_count`, `dietary`) so Netlify records them. The admin
+RSVPs section switches between the two forms and, for this one, shows each
+guest's choice and **kitchen totals** (how many of each dish); its CSV export
+is per form. To add another RSVP form: copy one of the pages, then add an entry
+to `RSVP_FORMS` in `netlify/lib/rsvp.mts`.
