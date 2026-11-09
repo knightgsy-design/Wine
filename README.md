@@ -169,11 +169,11 @@ publish directory is the repo root and functions are picked up from
 - Bookings made before multi-event support have no `event` field and are treated as the wine tasting.
 - `GET /api/booking?event=<id>` is the public availability endpoint; admin `GET` returns every event's status plus all bookings.
 
-## New Members Party RSVPs (`/new-members`, admin → "New Members Party RSVPs")
+## New Members Party RSVPs (`/new-members`, admin → "RSVPs")
 
 `/new-members` is an unlisted RSVP page (Netlify Forms, form `new-members-rsvp`;
 not linked from anywhere, `noindex`). Responses always live in Netlify's
-**Forms** tab. `/admin` has a second section, **New Members Party RSVPs**:
+**Forms** tab. `/admin` has a second section, **RSVPs**:
 names, email, dietary requirements and when each arrived, with counts, delete
 and **Export CSV**.
 

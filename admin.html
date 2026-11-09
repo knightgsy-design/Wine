@@ -313,7 +313,7 @@
     <div id="app">
       <nav class="evtabs sections" id="sectionTabs" aria-label="Section">
         <button class="evtab" type="button" data-section="bookings" aria-pressed="true">Event bookings</button>
-        <button class="evtab" type="button" data-section="rsvps" aria-pressed="false">New Members Party RSVPs <small id="rsvpCount"></small></button>
+        <button class="evtab" type="button" data-section="rsvps" aria-pressed="false">RSVPs <small id="rsvpCount"></small></button>
       </nav>
 
       <div id="bookingsView">
@@ -413,8 +413,9 @@
 
       <div id="rsvpView" style="display:none">
         <nav class="evtabs" id="rsvpForms" aria-label="RSVP form"></nav>
-        <div class="stats" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="stats" id="rsvpStats" style="grid-template-columns: repeat(3, 1fr);">
           <div class="stat"><div class="num" id="rsvpTotal">–</div><div class="lbl">RSVPs received</div></div>
+          <div class="stat" id="rsvpGuestsStat"><div class="num" id="rsvpGuests">–</div><div class="lbl">Guests attending</div></div>
           <div class="stat"><div class="num" id="rsvpDietary">–</div><div class="lbl">With dietary notes</div></div>
         </div>
 
@@ -1034,6 +1035,10 @@
       document.querySelectorAll('.col-menu').forEach((el) => { el.style.display = hasMenu ? '' : 'none'; });
       const kw = document.getElementById('rsvpKitchenWrap');
       kw.style.display = hasMenu ? '' : 'none';
+      // places = every dish picked (one per guest); only known for forms with a dish choice
+      document.getElementById('rsvpGuestsStat').style.display = hasMenu ? '' : 'none';
+      document.getElementById('rsvpStats').style.gridTemplateColumns = 'repeat(' + (hasMenu ? 3 : 2) + ', 1fr)';
+      if (hasMenu) document.getElementById('rsvpGuests').textContent = list.reduce((n, r) => n + form.dishes.reduce((m, d) => m + ((r.counts || {})[d.key] || 0), 0), 0);
       if (hasMenu) {
         const items = form.dishes.map((d) => `<li><span>${escapeHtml(d.name)}</span><b>${list.reduce((n, r) => n + ((r.counts || {})[d.key] || 0), 0)}</b></li>`).join('');
         document.getElementById('rsvpKitchen').innerHTML = `<div><ul>${items}</ul></div>`;
