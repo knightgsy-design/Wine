@@ -36,7 +36,7 @@ export const EVENTS: Record<string, EventDef> = {
   halloween: {
     id: "halloween",
     refPrefix: "HALL",
-    open: true,
+    open: false, // SUSPENDED: not offered or bookable (its bookings still show in /admin). Set true to reopen.
     title: "Halloween Buffet Supper",
     price: 20,
     capacity: 60, // TODO: confirm — no capacity was given for this event

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GYC Events — Guernsey Yacht Club</title>
-  <meta name="description" content="Book your place at Guernsey Yacht Club events: Halloween Buffet Supper (31 Oct), the Gin & Rum Tasting at Wheadon's Bunker (14 Nov) and the Christmas Crew Lunch (19 Dec)." />
+  <meta name="description" content="Book your place at Guernsey Yacht Club events: the Gin & Rum Tasting at Wheadon's Bunker (14 Nov) and the Christmas Crew Lunch (19 Dec)." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -225,6 +225,7 @@
     const EVENTS = [
       {
         id: 'halloween',
+        suspended: true, // hidden from the page; reopen by removing this and setting `open: true` in netlify/lib/events.mts
         tab: 'Halloween Buffet Supper',
         short: '31 Oct · from 6.30pm',
         eyebrow: 'Saturday 31st October 2026',
@@ -284,7 +285,7 @@
         ],
         callout: null,
       },
-    ];
+    ].filter((e) => !e.suspended);
 
     const $ = (s, r = document) => r.querySelector(s);
     const money = (n) => '£' + Number(n).toFixed(2).replace(/\.00$/, '');

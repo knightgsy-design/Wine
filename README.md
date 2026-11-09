@@ -6,7 +6,7 @@ confirm their place. Repurposed from the original wine tasting booking page.
 
 | Event | Date | Price | Places |
 |---|---|---|---|
-| Halloween Buffet Supper | Sat 31 Oct 2026, from 6.30pm | £20 | 60 *(placeholder — confirm)* |
+| ~~Halloween Buffet Supper~~ *(suspended — hidden and closed to bookings)* | Sat 31 Oct 2026, from 6.30pm | £20 | 60 |
 | Gin & Rum Tasting — Wheadon's Bunker | Sat 14 Nov 2026, 5.30pm | £35 (dinner: Beef Stroganoff / Cauliflower Steak (V)) | 24 |
 | Christmas Crew Lunch | Sat 19 Dec 2026, from 3pm | £27.50 (main + dessert each) | no limit; bookings close 14 Dec *(confirm)* |
 | Wine Tasting Evening *(past — closed, bookings kept in /admin)* | Sat 26 Sep 2026 | £30 | 40 |
@@ -204,3 +204,12 @@ RSVPs section switches between the two forms and, for this one, shows each
 guest's choice and **kitchen totals** (how many of each dish); its CSV export
 is per form. To add another RSVP form: copy one of the pages, then add an entry
 to `RSVP_FORMS` in `netlify/lib/rsvp.mts`.
+
+### Suspending / reopening an event
+
+To suspend an event: set `open: false` in `netlify/lib/events.mts` (the server
+stops taking bookings; public availability 404s; its bookings stay visible in
+`/admin`, tab marked "closed") and add `suspended: true` to its entry in the
+`EVENTS` list in `index.html` (hides its tab and panel). Halloween is
+suspended this way. To reopen, reverse both. Old QR codes / `#event` links to a
+suspended event simply land on the first visible event.
