@@ -268,7 +268,7 @@
     .place-rows { display: grid; gap: 8px; margin-bottom: 8px; }
     .place-row { display: grid; gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; grid-template-columns: 1fr auto; }
     .place-row .p-name { grid-column: 1; }
-    .place-row .p-pick { grid-column: 1; }
+    .place-row .p-pick, .place-row .p-type { grid-column: 1; }
     .place-row .rm-place-btn { grid-column: 2; grid-row: 1; padding: 6px 10px; }
     .sections { margin-top: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
     .rsvp-names { font-weight: 600; font-size: 14px; }
@@ -550,6 +550,7 @@
     }
 
     function courses() { return currentEvent()?.courses || null; }
+    function tiers() { return currentEvent()?.tiers || []; }
 
     // A booking's picks as { courseId: [itemId per place] }, including legacy flat `meals`.
     function picksFor(b) {
@@ -564,20 +565,27 @@
       if (!cs || !picks) return [];
       return Array.from({ length: b.guests }, (_, i) => {
         const who = (b.names && b.names[i]) || 'Place ' + (i + 1);
-        const what = cs.map((c) => {
+        const tier = tiers().find((t) => t.id === (b.types || [])[i]);
+        const what = [tier && tier.label].concat(cs.map((c) => {
           const it = c.items.find((x) => x.id === (picks[c.id] || [])[i]);
           return it ? (cs.length > 1 ? c.label + ': ' + it.name : it.name) : '';
-        }).filter(Boolean).join(' · ');
+        })).filter(Boolean).join(' · ');
         return who + ' — ' + what;
       });
     }
 
     // Editable place rows (menu events): a name and one choice per course, per place.
-    function placeRowHTML(name, choice) {
+    function placeRowHTML(name, choice, type) {
       const cs = courses() || [];
-      return `<div class="place-row"><input class="p-name" placeholder="Guest name" maxlength="60" value="${escapeAttr(name || '')}" />` +
-        cs.map((c) => `<select class="p-pick" data-course="${c.id}"><option value="">${escapeHtml(c.label)}…</option>` +
-          c.items.map((it) => `<option value="${it.id}"${(choice || {})[c.id] === it.id ? ' selected' : ''}>${escapeHtml(it.name)}</option>`).join('') + '</select>').join('') +
+      const ts = tiers();
+      const tier = ts.find((t) => t.id === type);
+      const typeSel = ts.length
+        ? '<select class="p-type"><option value="">Ticket…</option>' + ts.map((t) => `<option value="${t.id}"${type === t.id ? ' selected' : ''}>${escapeHtml(t.label)}${t.price ? ' £' + t.price : ''}</option>`).join('') + '</select>'
+        : '';
+      const showPicks = !ts.length || (tier && tier.meal);
+      return `<div class="place-row"><input class="p-name" placeholder="Guest name" maxlength="60" value="${escapeAttr(name || '')}" />` + typeSel +
+        (showPicks ? cs.map((c) => `<select class="p-pick" data-course="${c.id}"><option value="">${escapeHtml(c.label)}…</option>` +
+          c.items.filter((it) => !ts.length || !it.tier || it.tier === type).map((it) => `<option value="${it.id}"${(choice || {})[c.id] === it.id ? ' selected' : ''}>${escapeHtml(it.name)}</option>`).join('') + '</select>').join('') : '') +
         '<button type="button" class="btn small ghost rm-place-btn" title="Remove this place">×</button></div>';
     }
     function placeRowsHTML(b) {
@@ -586,26 +594,39 @@
       return '<div class="place-rows">' + Array.from({ length: n }, (_, i) => {
         const choice = {};
         Object.keys(picks).forEach((cid) => { choice[cid] = picks[cid][i]; });
-        return placeRowHTML(b && b.names ? b.names[i] : '', choice);
+        return placeRowHTML(b && b.names ? b.names[i] : '', choice, b && b.types ? b.types[i] : '');
       }).join('') + '</div><button type="button" class="btn small ghost add-place-btn">+ Add place</button>';
     }
     // Reads the rows back; every place needs a name and a choice for every course.
     function readPlaces(root) {
       const rows = [...root.querySelectorAll('.place-row')];
       if (!rows.length) throw new Error('Add at least one place.');
-      const names = [], picks = {};
+      const names = [], picks = {}, types = [];
       (courses() || []).forEach((c) => { picks[c.id] = []; });
       rows.forEach((row, i) => {
         const name = row.querySelector('.p-name').value.trim();
         if (!name) throw new Error('Place ' + (i + 1) + ' needs a name.');
         names.push(name);
-        row.querySelectorAll('.p-pick').forEach((sel) => {
-          if (!sel.value) throw new Error('Place ' + (i + 1) + ' needs a choice for every course.');
-          picks[sel.dataset.course].push(sel.value);
+        const typeSel = row.querySelector('.p-type');
+        if (typeSel) {
+          if (!typeSel.value) throw new Error('Place ' + (i + 1) + ' needs a ticket type.');
+          types.push(typeSel.value);
+        }
+        const sels = [...row.querySelectorAll('.p-pick')];
+        (courses() || []).forEach((c) => {
+          const sel = sels.find((x) => x.dataset.course === c.id);
+          // a ticket with no meal (awards only) has no dish selects: record "" for it
+          if (sel && !sel.value) throw new Error('Place ' + (i + 1) + ' needs a choice for every course.');
+          picks[c.id].push(sel ? sel.value : '');
         });
       });
-      return { names, picks, guests: rows.length };
+      return Object.assign({ names, picks, guests: rows.length }, tiers().length ? { types } : {});
     }
+    document.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('p-type')) return;
+      const row = e.target.closest('.place-row');
+      row.outerHTML = placeRowHTML(row.querySelector('.p-name').value, {}, e.target.value);
+    });
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('add-place-btn')) {
         const rows = e.target.parentElement.querySelector('.place-rows');
@@ -629,7 +650,7 @@
         box.dataset.rendered = st.event;
       }
       document.getElementById('addGuests').max = st.maxPerBooking;
-      document.getElementById('addAmountHint').textContent = `(blank = £${Number(st.price).toFixed(2)} × places)`;
+      document.getElementById('addAmountHint').textContent = st.tiers ? '(blank = the ticket prices for each place)' : `(blank = £${Number(st.price).toFixed(2)} × places)`;
     }
 
     function emailPill(sent) {

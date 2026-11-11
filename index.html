@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GYC Events — Guernsey Yacht Club</title>
-  <meta name="description" content="Book your place at Guernsey Yacht Club events: the Gin & Rum Tasting at Wheadon's Bunker (14 Nov) and the Christmas Crew Lunch (19 Dec)." />
+  <meta name="description" content="Book your place at Guernsey Yacht Club events: the Gin & Rum Tasting at Wheadon's Bunker (14 Nov), the Junior Sailing Awards Evening (28 Nov) and the Christmas Crew Lunch (19 Dec)." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -85,12 +85,14 @@
     .tab[aria-selected="true"] { background: var(--chart); color: var(--ink); border-bottom-color: var(--tab-accent, var(--flag)); }
     .tab[data-event="halloween"] { --tab-accent: #e8741a; }
     .tab[data-event="gin-rum"] { --tab-accent: #2a9d8f; }
+    .tab[data-event="junior-awards"] { --tab-accent: #e0a526; }
     .tab[data-event="christmas-lunch"] { --tab-accent: #3f8f5e; }
 
     main { max-width: 880px; margin: 0 auto; padding: 0 16px 60px; }
     .panel[hidden] { display: none; }
     .panel[data-event="halloween"] { --accent: #e8741a; --accent-ink: #b4560d; --hero: #24102e; }
     .panel[data-event="gin-rum"] { --accent: #2a9d8f; --accent-ink: #1d6f65; --hero: #08282b; }
+    .panel[data-event="junior-awards"] { --accent: #e0a526; --accent-ink: #8a6310; --hero: #0a2240; }
     .panel[data-event="christmas-lunch"] { --accent: #3f8f5e; --accent-ink: #2f6b45; --hero: #0a2240; }
 
     .hero { margin: 0 -16px; padding: 38px 24px 36px; background: var(--hero); color: #fff; text-align: center; border-radius: 0; position: relative; overflow: hidden; isolation: isolate; }
@@ -102,7 +104,7 @@
     .hero .sub { color: rgba(255,255,255,.82); font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.55; }
     .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-top: 20px; }
     .chip { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 8px 15px; font-size: 13.5px; font-weight: 600; }
-    .price-badge { display: inline-block; margin-top: 20px; background: #fff; color: var(--sea); font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; padding: 10px 28px; border-radius: 999px; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+    .price-badge { display: inline-block; margin-top: 20px; background: #fff; color: var(--sea); font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; padding: 10px 28px; border-radius: 26px; line-height: 1.35; max-width: 100%; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
     .hero .burgee { display: block; width: 150px; height: auto; margin: 0 auto 18px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.4)); }
     .menu-course { margin-top: 18px; }
     .menu-course h4 { font: 700 17px 'Playfair Display', serif; color: var(--sea); margin: 0 0 2px; }
@@ -112,6 +114,8 @@
     .menu-course .dish { font-weight: 700; font-size: 15px; line-height: 1.3; }
     .menu-course .desc { color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; margin-top: 3px; }
     .tag { display: inline-block; font-weight: 700; font-size: 11px; line-height: 1; color: #2f6b45; border: 1.5px solid #2f6b45; border-radius: 999px; padding: 3px 7px 2px; margin-left: 6px; vertical-align: 2px; }
+    .menu-tier { margin: 22px 0 0; padding-top: 4px; font: 700 13px 'Inter', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); }
+    .menu-tier span { color: var(--ink-soft); letter-spacing: 0; text-transform: none; font-weight: 600; }
     .menu-key { margin: 14px 0 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
     .deco { position: absolute; font-size: 54px; opacity: .16; user-select: none; pointer-events: none; }
 
@@ -145,6 +149,7 @@
     .meal-guest { display: grid; gap: 7px; padding-bottom: 10px; border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, white); }
     .meal-guest:last-child { border-bottom: 0; padding-bottom: 0; }
     .meal-guest > span { font-weight: 600; font-size: 13.5px; }
+    .tier-pick { display: grid; gap: 4px; }
     .meal-row { display: grid; grid-template-columns: 70px 1fr; gap: 10px; align-items: center; font-size: 13.5px; }
     button.pay { background: var(--flag); color: #fff; border: 0; border-radius: 12px; padding: 15px 20px; font: 700 17px 'Playfair Display', serif; cursor: pointer; transition: filter .15s, transform .1s; }
     button.pay:hover { background: var(--flag-dark); }
@@ -265,6 +270,29 @@
         callout: 'Discounted deals will be available on the night on a range of gins, vodkas and rums.',
       },
       {
+        id: 'junior-awards',
+        tab: 'Junior Awards Evening',
+        short: '28 Nov · 6pm',
+        eyebrow: 'Saturday 28th November 2026',
+        title: 'GYC Junior Sailing Awards Evening 2026',
+        sub: 'Celebrate our junior sailors with the awards ceremony, then stay for dinner in the Main Bar.',
+        priceText: 'Awards free · Dinner £20 adult · £10 child',
+        price: 20,
+        maxPerBooking: 20,
+        hasMenu: true,
+        burgee: true,
+        deco: ['🏆', '⛵', '⚓'],
+        facts: [
+          ['📅', '<b>Saturday 28th November 2026</b>'],
+          ['🕕', '<b>6pm to 8pm</b>'],
+          ['🏆', '<b>Awards ceremony at 6pm</b> in the GYC Club Room'],
+          ['🍽️', '<b>Dinner at 7pm</b> in the Main Bar (optional)'],
+          ['🎟️', 'Awards ceremony only? <b>No charge</b> — just choose that ticket below'],
+          ['💷', 'Dinner is <b>two courses</b>: <b>£20</b> adults, <b>£10</b> children'],
+        ],
+        callout: 'Child dinners are suggested for ages 12 and under because of portion size, but can be ordered for older children too.',
+      },
+      {
         id: 'christmas-lunch',
         tab: 'Christmas Crew Lunch',
         short: '19 Dec · from 3pm',
@@ -361,7 +389,7 @@
           <div class="eyebrow">${ev.eyebrow}</div>
           <h2>${ev.title}</h2>
           <p class="sub">${ev.sub}</p>
-          <div class="price-badge" data-price>${money(ev.price)} per head</div>
+          <div class="price-badge" data-price>${ev.priceText || money(ev.price) + ' per head'}</div>
         </div>
 
         <div class="card">
@@ -388,7 +416,7 @@
             <div class="field"><label>${ev.hasMenu ? 'Allergies / dietary notes' : 'Notes'} <span class="hint">(optional)</span></label><textarea name="notes"></textarea></div>
             <div class="msg" data-msg></div>
             <button class="pay" type="submit" data-pay>Pay &amp; confirm</button>
-            <p class="secure">🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.</p>
+            <p class="secure" data-secure>🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.</p>
           </form>
           <div class="full" data-full>Sorry — this event is now fully booked.<br />Email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a> to join the waiting list.</div>
         </div>`;
@@ -419,9 +447,23 @@
       const mealsEl = $('[data-meals]', panel);
       let price = ev.price;
       let courses = null; // the menu, as served by the API
+      let tiers = null;   // ticket types (tiered events only), as served by the API
+      const tierById = (id) => (tiers || []).find((t) => t.id === id);
+      const typeOf = (i) => form.elements[`type_${i}`]?.value || '';
 
-      const total = () => Number(guestsSel.value || 1) * price;
-      const setLabel = () => { pay.innerHTML = `Pay ${money(total())} &amp; confirm`; };
+      const total = () => {
+        const n = Number(guestsSel.value || 1);
+        if (!tiers) return n * price;
+        return Array.from({ length: n }, (_, i) => tierById(typeOf(i))?.price || 0).reduce((a, b) => a + b, 0);
+      };
+      const allFree = () => !!tiers && Array.from({ length: Number(guestsSel.value || 1) }, (_, i) => typeOf(i)).every((t) => t && tierById(t)?.price === 0);
+      const setLabel = () => {
+        pay.innerHTML = allFree() ? 'Confirm my place (free)' : `Pay ${money(total())} &amp; confirm`;
+        const sec = $('[data-secure]', panel);
+        if (sec) sec.innerHTML = allFree()
+          ? 'No payment is needed for the awards ceremony. Your place is confirmed straight away and you will be sent a confirmation email.'
+          : "🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.";
+      };
       const showErr = (t) => { msg.textContent = t; msg.classList.add('show'); };
 
       function renderMenuCard() {
@@ -429,6 +471,16 @@
         const described = courses && courses.some((c) => c.items.some((i) => i.desc));
         if (!described) { card.hidden = true; return; }
         const anyTags = courses.some((c) => c.items.some((i) => (i.tags || []).length));
+        if (tiers) {
+          const courseList = (t) => courses.map((c) => {
+            const items = c.items.filter((i) => !i.tier || i.tier === t.id);
+            return items.length ? `<div class="menu-course"><h4>${esc(c.label)}</h4><ul>${items.map((i) => `<li><div class="dish">${esc(i.name)}</div>${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ''}</li>`).join('')}</ul></div>` : '';
+          }).join('');
+          card.innerHTML = '<h3>Dinner menu</h3><p class="meal-help">Dinner is optional. Everyone gets two courses: choose one main and one dessert.</p>' +
+            tiers.filter((t) => t.meal).map((t) => `<p class="menu-tier">${esc(t.label)} <span>· ${money(t.price)} for two courses</span></p>${courseList(t)}`).join('');
+          card.hidden = false;
+          return;
+        }
         card.innerHTML = '<h3>The menu</h3>' + courses.map((c) => `
           <div class="menu-course">
             <h4>${esc(c.label)}</h4><p class="pick">Choose one</p>
@@ -444,6 +496,22 @@
         const keep = {};
         mealsEl.querySelectorAll('select, input').forEach((el) => { keep[el.name] = el.value; });
         const two = courses.length > 1;
+        if (tiers) {
+          const opts = (sel) => `<option value="">Select…</option>` + tiers.map((t) => `<option value="${t.id}"${sel === t.id ? ' selected' : ''}>${esc(t.label)}${t.price ? ' — ' + money(t.price) : ''}</option>`).join('');
+          mealsEl.innerHTML = `<b>Who's coming, and what would they like?</b><span class="meal-help">Enter each guest's name and choose their ticket. Dinner guests also choose a main and a dessert, so the kitchen knows who ordered what.</span>` +
+            Array.from({ length: n }, (_, i) => {
+              const t = tierById(keep[`type_${i}`]);
+              return `<div class="meal-guest"><input name="guest_${i}" placeholder="Place ${i + 1}: guest name" maxlength="60" autocomplete="off" required value="${esc(keep[`guest_${i}`] ?? '')}" />
+                <div class="meal-row tier-row"><span>Ticket</span><select name="type_${i}" required>${opts(keep[`type_${i}`])}</select></div>
+                ${t && t.meal ? courses.map((c) => `
+                <div class="meal-row"><span>${esc(c.label)}</span><select name="pick_${c.id}_${i}" required>
+                  <option value="">Select…</option>${c.items.filter((it) => !it.tier || it.tier === t.id).map((it) => `<option value="${it.id}"${keep[`pick_${c.id}_${i}`] === it.id ? ' selected' : ''}>${esc(it.name)}</option>`).join('')}
+                </select></div>`).join('') : ''}</div>`;
+            }).join('');
+          mealsEl.hidden = false;
+          syncFirstName();
+          return;
+        }
         mealsEl.innerHTML = `<b>Who's coming, and what would they like?</b><span class="meal-help">Enter each guest's name and choose ${two ? 'a ' + courses.map((c) => c.label.toLowerCase()).join(' and a ') : 'a meal'} for them, so the kitchen knows who ordered what.</span>` +
           Array.from({ length: n }, (_, i) => `<div class="meal-guest"><input name="guest_${i}" placeholder="Place ${i + 1}: guest name" maxlength="60" autocomplete="off" required value="${esc(keep[`guest_${i}`] ?? '')}" />${courses.map((c) => `
             <div class="meal-row"><span>${esc(c.label)}</span><select name="pick_${c.id}_${i}" required>
@@ -475,14 +543,23 @@
       }
 
       guestsSel.addEventListener('change', () => { renderMeals(); setLabel(); });
+      mealsEl.addEventListener('change', (e) => {
+        if (!tiers || !e.target.name?.startsWith('type_')) return;
+        const i = e.target.name.slice(5);
+        const t = tierById(e.target.value);
+        // a different ticket means different dishes: forget the old choices for that place
+        mealsEl.querySelectorAll(`select[name$="_${i}"]`).forEach((el) => { if (el.name.startsWith('pick_')) el.value = ''; });
+        renderMeals(); setLabel();
+      });
 
       function applyStatus(s) {
         price = s.price ?? price;
         courses = s.courses || null;
+        tiers = s.tiers || null;
         const closed = s.bookable === false;
         const soldOut = !!s.soldOut;
 
-        $('[data-price]', panel).textContent = money(price) + ' per head';
+        if (!ev.priceText) $('[data-price]', panel).textContent = money(price) + ' per head';
         const closes = $('[data-closes]', panel);
         if (s.closesAt && !closed) {
           closes.textContent = 'Book by ' + new Date(s.closesAt + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.';
@@ -522,10 +599,14 @@
         if (courses) {
           payload.names = Array.from({ length: guests }, (_, i) => (f[`guest_${i}`]?.value || '').trim());
           if (payload.names.some((n) => !n)) return showErr('Please give a name for every place.');
+          if (tiers) {
+            payload.types = Array.from({ length: guests }, (_, i) => typeOf(i));
+            if (payload.types.some((t) => !t)) return showErr('Please choose a ticket for every place.');
+          }
           payload.picks = {};
           for (const c of courses) {
-            payload.picks[c.id] = Array.from({ length: guests }, (_, i) => f[`pick_${c.id}_${i}`]?.value || '');
-            if (payload.picks[c.id].some((m) => !m)) return showErr(`Please choose a ${c.label.toLowerCase()} for every place.`);
+            payload.picks[c.id] = Array.from({ length: guests }, (_, i) => (tiers && !tierById(payload.types[i])?.meal) ? '' : (f[`pick_${c.id}_${i}`]?.value || ''));
+            if (payload.picks[c.id].some((m, i) => !m && !(tiers && !tierById(payload.types[i])?.meal))) return showErr(`Please choose a ${c.label.toLowerCase()} for every place that is having dinner.`);
           }
         }
         pay.disabled = true; pay.textContent = 'Opening secure payment…';

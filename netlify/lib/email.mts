@@ -16,6 +16,7 @@ export interface EmailBooking {
   phone?: string;
   guests: number;
   names?: string[];
+  types?: string[];
   picks?: Record<string, string[]>;
   meals?: string[];
   notes?: string;
@@ -73,14 +74,25 @@ function rows(b: EmailBooking, ev: EventDef): [string, string][] {
     ...(m ? ([["Menu", m]] as [string, string][]) : []),
     ...(b.phone ? ([["Phone", b.phone]] as [string, string][]) : []),
     ...(b.notes ? ([["Notes", b.notes]] as [string, string][]) : []),
-    ["Paid", money(b.total)],
+    [isFree(b) ? "Cost" : "Paid", isFree(b) ? "Free" : money(b.total)],
     ["Reference", b.ref],
   ];
 }
 
+/** A booking with nothing to pay (free awards-only places): confirmed without SumUp. */
+function isFree(b: EmailBooking) {
+  return b.total === 0;
+}
+
+function intro(b: EmailBooking, ev?: EventDef) {
+  const places = `place${b.guests > 1 ? "s are" : " is"}`;
+  const lead = isFree(b) ? `Thanks ${b.name}, your ${places} booked` : `Thanks ${b.name}, your payment's gone through and your ${places} booked`;
+  return ev ? `${lead} for the ${ev.title}.` : `${lead}.`;
+}
+
 function guestText(b: EmailBooking, ev: EventDef) {
   return [
-    `Thanks ${b.name}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked for the ${ev.title}.`,
+    intro(b, ev),
     "",
     ...rows(b, ev).map(([k, v]) => `${k}: ${v.replace(/\n/g, "\n   ")}`),
     "",
@@ -108,14 +120,14 @@ function guestHtml(b: EmailBooking, ev: EventDef) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #d6dde6;font-family:Georgia,'Times New Roman',serif;color:#14202e;">
             <tr>
               <td style="background:#0a2240;padding:30px 32px;text-align:center;">
-                <div style="color:#ff6a6e;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">Payment received</div>
+                <div style="color:#ff6a6e;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;margin:0 0 10px;">${isFree(b) ? "Booking confirmed" : "Payment received"}</div>
                 <div style="color:#ffffff;font-size:25px;font-weight:bold;line-height:1.3;">${esc(ev.title)}</div>
                 <div style="color:#ff6a6e;font-family:Arial,sans-serif;font-size:13px;margin:8px 0 0;">${esc(ev.when)}</div>
               </td>
             </tr>
             <tr>
               <td style="padding:30px 32px 8px;">
-                <p style="margin:0 0 18px;font-size:15.5px;line-height:1.6;">Thanks ${esc(b.name)}, your payment's gone through and your place${b.guests > 1 ? "s are" : " is"} booked.</p>
+                <p style="margin:0 0 18px;font-size:15.5px;line-height:1.6;">${esc(intro(b))}</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ebf0f5;border-radius:10px;margin-bottom:22px;">
                   <tr>
                     <td style="padding:16px 20px;font-family:Arial,sans-serif;font-size:14px;line-height:1.9;color:#14202e;">

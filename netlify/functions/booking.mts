@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import {
   allEventStatuses,
   capacityStatus,
+  computeTotal,
   publicStatus,
   eventIdOf,
   isReserving,
@@ -11,6 +12,7 @@ import {
   makeRef,
   parseNames,
   parsePicks,
+  parseTypes,
   picksOf,
   readBooking,
   store as bookingStore,
@@ -104,8 +106,10 @@ export default async (req: Request, context: Context) => {
 
     let picks: Record<string, string[]> | undefined;
     let names: string[] | undefined;
+    let types: string[] | undefined;
     try {
-      picks = parsePicks(body.picks, ev, guests);
+      types = parseTypes(body.types, ev, guests);
+      picks = parsePicks(body.picks, ev, guests, types);
       names = parseNames(body.names, ev, guests);
     } catch (e: any) {
       return Response.json({ error: e.message }, { status: 400 });
@@ -122,7 +126,7 @@ export default async (req: Request, context: Context) => {
     // The admin may have taken a different amount than the standard price
     // (a complimentary place, cash rounding), so an override is allowed but
     // the computed price is the default.
-    const computed = Math.round(guests * ev.price * 100) / 100;
+    const computed = computeTotal(ev, guests, types);
     const total =
       body.amountPounds !== "" && body.amountPounds != null
         ? Math.round(parseFloat(body.amountPounds) * 100) / 100
@@ -148,6 +152,7 @@ export default async (req: Request, context: Context) => {
       notes: notes || undefined,
       guests,
       names,
+      types,
       picks,
       total,
       source: "manual",
@@ -279,9 +284,11 @@ export default async (req: Request, context: Context) => {
     // Menu events: the choices have to keep matching the number of places.
     let nextPicks = picksOf(booking, ev);
     let nextNames = booking.names;
+    let nextTypes = booking.types;
     if (ev.courses) {
       try {
-        nextPicks = parsePicks(body.picks ?? nextPicks, ev, nextGuests);
+        nextTypes = parseTypes(body.types ?? nextTypes, ev, nextGuests);
+        nextPicks = parsePicks(body.picks ?? nextPicks, ev, nextGuests, nextTypes);
         nextNames = parseNames(body.names ?? nextNames, ev, nextGuests);
       } catch {
         return Response.json({ error: "Every place needs a name and a menu choice." }, { status: 400 });
@@ -311,9 +318,10 @@ export default async (req: Request, context: Context) => {
     booking.guests = nextGuests;
     booking.picks = nextPicks;
     booking.names = nextNames;
+    booking.types = nextTypes;
     booking.meals = undefined;
     if (booking.status === "paid") {
-      booking.total = Math.round(nextGuests * ev.price * 100) / 100;
+      booking.total = computeTotal(ev, nextGuests, nextTypes);
     }
 
     await writeBooking(booking);

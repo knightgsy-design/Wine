@@ -8,6 +8,7 @@ confirm their place. Repurposed from the original wine tasting booking page.
 |---|---|---|---|
 | ~~Halloween Buffet Supper~~ *(suspended — hidden and closed to bookings)* | Sat 31 Oct 2026, from 6.30pm | £20 | 60 |
 | Gin & Rum Tasting — Wheadon's Bunker | Sat 14 Nov 2026, 5.30pm | £35 (dinner: Beef Stroganoff / Cauliflower Steak (V)) | 24 |
+| GYC Junior Sailing Awards Evening 2026 | Sat 28 Nov 2026, 6pm–8pm (awards 6pm Club Room, dinner 7pm Main Bar) | Awards only: free · Adult dinner £20 · Child dinner £10 (two courses) | no limit *(confirm)* |
 | Christmas Crew Lunch | Sat 19 Dec 2026, from 3pm | £27.50 (main + dessert each) | no limit; bookings close 14 Dec *(confirm)* |
 | Wine Tasting Evening *(past — closed, bookings kept in /admin)* | Sat 26 Sep 2026 | £30 | 40 |
 
@@ -17,11 +18,22 @@ confirm their place. Repurposed from the original wine tasting booking page.
 **price, capacity, per-booking limit, menu, and email wording** — the browser
 never sets what's charged. Display copy (hero text, facts list) lives in the
 `EVENTS` array at the top of the script in `index.html`. Deep links:
-`/#halloween`, `/#gin-rum` (these are what the QR codes in `qr/` point at —
+`/#halloween`, `/#gin-rum`, `/#junior-awards` (these are what the QR codes in `qr/` point at —
 regenerate them if the site's URL changes).
 
 Events with a `menu` make every place choose a meal; the kitchen counts show
 in `/admin`.
+
+### Tiered events (Junior Awards)
+
+An event with `tiers` in `events.mts` makes every place pick a **ticket type**
+(awards only £0 / adult dinner / child dinner), each with its own price; the
+total is the sum of the tickets. Menu items carry a `tier` so adults and
+children see and can only pick their own dishes; awards-only places have no
+meal. The booking stores `types` per place. If the total is £0 (everyone awards
+only) SumUp is skipped (it can't take a £0 checkout): the booking is confirmed
+and emailed immediately. `/admin` shows a ticket column per place, and kitchen
+totals include a "Places" count by ticket. QR code: `qr/junior-awards.png`.
 
 ## How it works
 

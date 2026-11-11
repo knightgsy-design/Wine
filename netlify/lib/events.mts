@@ -5,7 +5,17 @@
    EVENTS list in index.html (display copy only).
    --------------------------------------------------------------- */
 
-export type MenuItem = { id: string; name: string; desc?: string; tags?: string[] };
+export type MenuItem = {
+  id: string;
+  name: string;
+  desc?: string;
+  tags?: string[];
+  /** Tiered events only: which ticket type may pick this item (omit = any type that eats). */
+  tier?: string;
+};
+
+/** A kind of place on a tiered event, each with its own price (0 = free, no payment taken). */
+export type Tier = { id: string; label: string; price: number; /** false = no meal to choose */ meal: boolean };
 
 /** One course of a set menu: every place picks exactly one item from each course. */
 export type Course = { id: string; label: string; items: MenuItem[] };
@@ -23,6 +33,8 @@ export type EventDef = {
   maxPerBooking: number;
   /** When set, every place must choose one item from every course (kitchen counts). */
   courses?: Course[];
+  /** When set, every place picks a ticket type and is priced by it (`price` is then only a headline figure). */
+  tiers?: Tier[];
   /** Last day (YYYY-MM-DD, inclusive) that bookings are taken, e.g. the kitchen's order deadline. */
   closesAt?: string;
   /** Used in emails */
@@ -67,6 +79,50 @@ export const EVENTS: Record<string, EventDef> = {
     where: "Wheadon's Bunker, Castle Emplacement",
     blurb: ["Come and enjoy the many flavours now offered by Wheadon's."],
     callout: "Discounted deals will be available on the night on a range of gins, vodkas and rums.",
+  },
+  "junior-awards": {
+    id: "junior-awards",
+    refPrefix: "JNR",
+    open: true,
+    title: "GYC Junior Sailing Awards Evening 2026",
+    price: 20, // headline (adult dinner) — real prices come from `tiers`
+    capacity: null, // TODO: confirm — no capacity was given for this event
+    maxPerBooking: 20,
+    tiers: [
+      { id: "ceremony", label: "Awards only (free)", price: 0, meal: false },
+      { id: "adult", label: "Adult dinner", price: 20, meal: true },
+      { id: "child", label: "Child dinner", price: 10, meal: true },
+    ],
+    courses: [
+      {
+        id: "main",
+        label: "Main",
+        items: [
+          { id: "a-turkey", tier: "adult", name: "Traditional roast turkey", desc: "Chestnut stuffing, duck fat roast potatoes, buttered vegetables, homemade pigs in blankets and rich red wine gravy" },
+          { id: "a-salmon", tier: "adult", name: "Salmon en croute", desc: "Scottish salmon wrapped in a flaky puff pastry, with crispy hasselback potatoes, tenderstem broccoli and mornay sauce" },
+          { id: "a-cauliflower", tier: "adult", name: "Grilled cauliflower steak", desc: "Spiced chickpea purée, wild mushrooms, chimichurri sauce and toasted almonds" },
+          { id: "c-chicken", tier: "child", name: "Popcorn chicken and chips" },
+          { id: "c-turkey", tier: "child", name: "Half size Christmas turkey dinner" },
+          { id: "c-sausage", tier: "child", name: "Vegetarian sausage and chips" },
+        ],
+      },
+      {
+        id: "dessert",
+        label: "Dessert",
+        items: [
+          { id: "a-pudding", tier: "adult", name: "GYC Christmas pudding", desc: "Homemade traditional Christmas pudding with brandy sauce" },
+          { id: "a-pears", tier: "adult", name: "Mulled wine poached pears", desc: "Spiced wine simmered pears with rum and raisin ice cream" },
+          { id: "a-tart", tier: "adult", name: "Chocolate and orange tart", desc: "Dark chocolate ganache, candied orange slices and Solera ice cream" },
+          { id: "c-icecream", tier: "child", name: "Ice cream" },
+        ],
+      },
+    ],
+    when: "Saturday 28 November 2026 · 6pm to 8pm",
+    where: "Guernsey Yacht Club: awards ceremony at 6pm in the Club Room, dinner at 7pm in the Main Bar",
+    blurb: [
+      "The Junior Sailing Awards ceremony starts at 6pm in the GYC Club Room, followed by dinner in the Main Bar at 7pm.",
+      "Coming to the awards ceremony only is free. Dinner is two courses: £20 for adults, £10 for children.",
+    ],
   },
   "christmas-lunch": {
     id: "christmas-lunch",
