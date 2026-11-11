@@ -120,12 +120,12 @@
         ...((d.menu && d.menu.length) ? ['Menu'].concat(d.menu.map((l) => '\u00a0\u00a0' + l)) : []),
         d.notes ? 'Notes       ' + d.notes : '',
         '',
-        d.total === 0 ? 'Cost        Free' : 'Paid        ' + money(d.total),
+        'Paid        ' + money(d.total),
       ].filter(Boolean).join('\n');
 
       render(
-        (d.total === 0 ? 'Booked. Your place' : 'Paid. Your place') + (d.guests > 1 ? 's are' : ' is') + ' held.',
-        '<span class="stamp ok">' + (d.total === 0 ? 'Booking confirmed' : 'Payment received') + '</span>' +
+        'Paid. Your place' + (d.guests > 1 ? 's are' : ' is') + ' held.',
+        '<span class="stamp ok">' + 'Payment received' + '</span>' +
         '<div class="ref">' + esc(d.ref) + '</div>' +
         '<div class="summary">' + esc(summary).replace(/\n/g, '<br>') + '</div>' +
         (d.emailed
