@@ -120,17 +120,17 @@
         ...((d.menu && d.menu.length) ? ['Menu'].concat(d.menu.map((l) => '\u00a0\u00a0' + l)) : []),
         d.notes ? 'Notes       ' + d.notes : '',
         '',
-        'Paid        ' + money(d.total),
+        d.total === 0 ? 'Cost        Free' : 'Paid        ' + money(d.total),
       ].filter(Boolean).join('\n');
 
       render(
-        'Paid. Your place' + (d.guests > 1 ? 's are' : ' is') + ' held.',
-        '<span class="stamp ok">Payment received</span>' +
+        (d.total === 0 ? 'Booked. Your place' : 'Paid. Your place') + (d.guests > 1 ? 's are' : ' is') + ' held.',
+        '<span class="stamp ok">' + (d.total === 0 ? 'Booking confirmed' : 'Payment received') + '</span>' +
         '<div class="ref">' + esc(d.ref) + '</div>' +
         '<div class="summary">' + esc(summary).replace(/\n/g, '<br>') + '</div>' +
         (d.emailed
           ? '<p class="hint tight">A confirmation is on its way to ' + esc(d.email) + '. See you there!</p>'
-          : '<div class="warn">Payment received and your place is held. The email confirmation didn’t go out — screenshot this page, and the club has your booking either way.</div>')
+          : '<div class="warn">Your place is held. The email confirmation didn’t go out — screenshot this page, and the club has your booking either way.</div>')
       );
     }
 

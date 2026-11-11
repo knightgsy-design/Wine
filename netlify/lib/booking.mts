@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import { EVENTS, LEGACY_EVENT, isBookable, type EventDef } from "./events.mts";
+import { EVENTS, LEGACY_EVENT, isBookable, type EventDef, type Tier } from "./events.mts";
 
 export const CURRENCY = "GBP";
 
@@ -17,7 +17,9 @@ export type Booking = {
   guests: number;
   /** Who each place is for (menu events only): index = place. */
   names?: string[];
-  /** Menu choices: course id → one item id per place (index = place). */
+  /** Tiered events only: each place's ticket type id (index = place). */
+  types?: string[];
+  /** Menu choices: course id → one item id per place (index = place). "" where a place has no meal. */
   picks?: Record<string, string[]>;
   /** Legacy: single-course events stored a flat list. Read via picksOf(), never written. */
   meals?: string[];
@@ -84,8 +86,32 @@ export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Ticket types for every place of a tiered event. Throws on anything off. */
+export function parseTypes(raw: any, ev: EventDef, guests: number): string[] | undefined {
+  if (!ev.tiers) return undefined;
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length !== guests) throw new Error("Please choose a ticket type for every place.");
+  return list.map((t: any, i: number) => {
+    const id = str(t, 30);
+    if (!ev.tiers!.some((tier) => tier.id === id)) throw new Error(`Place ${i + 1} has no ticket type chosen.`);
+    return id;
+  });
+}
+
+export function tierOf(ev: EventDef | null, id: string | undefined): Tier | undefined {
+  return ev?.tiers?.find((t) => t.id === id);
+}
+
+/** What a booking costs: each place's own tier price on a tiered event, else places × price. */
+export function computeTotal(ev: EventDef, guests: number, types?: string[]): number {
+  const total = ev.tiers
+    ? (types ?? []).reduce((sum, id) => sum + (tierOf(ev, id)?.price ?? 0), 0)
+    : guests * ev.price;
+  return Math.round(total * 100) / 100;
+}
+
 /** Checks menu choices against an event's courses. Throws on anything off. */
-export function parsePicks(raw: any, ev: EventDef, guests: number): Record<string, string[]> | undefined {
+export function parsePicks(raw: any, ev: EventDef, guests: number, types?: string[]): Record<string, string[]> | undefined {
   if (!ev.courses) return undefined;
   const out: Record<string, string[]> = {};
   for (const course of ev.courses) {
@@ -93,6 +119,15 @@ export function parsePicks(raw: any, ev: EventDef, guests: number): Record<strin
     if (list.length !== guests) throw new Error(`Please choose a ${course.label.toLowerCase()} for every place.`);
     out[course.id] = list.map((m: any, i: number) => {
       const id = str(m, 30);
+      if (ev.tiers) {
+        const tier = tierOf(ev, types?.[i]);
+        if (!tier?.meal) return ""; // awards-only place: no meal
+        const item = course.items.find((it) => it.id === id);
+        if (!item || (item.tier && item.tier !== tier.id)) {
+          throw new Error(`Place ${i + 1} has no ${course.label.toLowerCase()} chosen.`);
+        }
+        return id;
+      }
       if (!course.items.some((item) => item.id === id)) {
         throw new Error(`Place ${i + 1} has no ${course.label.toLowerCase()} chosen.`);
       }
@@ -135,13 +170,14 @@ export function parseDraft(raw: any, ev: EventDef) {
   if (!Number.isInteger(guests) || guests < 1 || guests > ev.maxPerBooking) {
     throw new Error(`Please choose between 1 and ${ev.maxPerBooking} places.`);
   }
-  const picks = parsePicks(raw?.picks, ev, guests);
+  const types = parseTypes(raw?.types, ev, guests);
+  const picks = parsePicks(raw?.picks, ev, guests, types);
   const names = parseNames(raw?.names, ev, guests);
 
   // Total is computed here, never taken from the request.
-  const total = Math.round(guests * ev.price * 100) / 100;
+  const total = computeTotal(ev, guests, types);
 
-  return { name, email, phone, notes, guests, names, picks, total };
+  return { name, email, phone, notes, guests, names, types, picks, total };
 }
 
 /** Seats that count against an event's cap: paid, and awaiting payment (so
@@ -168,6 +204,7 @@ export function capacityStatus(bookings: Booking[], ev: EventDef) {
     bookable: isBookable(ev),
     closesAt: ev.closesAt ?? null,
     courses: ev.courses ?? null,
+    tiers: ev.tiers ?? null,
     taken,
     remaining: ev.capacity === null ? null : Math.max(0, ev.capacity - taken),
     paid: sum(mine.filter((b) => b.status === "paid")),
@@ -179,13 +216,26 @@ export function capacityStatus(bookings: Booking[], ev: EventDef) {
 /** What the kitchen needs to cook: per course, how many of each item (held seats only). */
 export function kitchenTotals(active: Booking[], ev: EventDef) {
   if (!ev.courses) return null;
-  return ev.courses.map((course) => ({
+  const courses = ev.courses.map((course) => ({
     course: course.label,
     items: course.items.map((item) => ({
-      name: item.name,
+      // On a tiered event the same course holds adult and child dishes: say which.
+      name: ev.tiers && item.tier ? `${item.name} (${tierOf(ev, item.tier)?.label ?? item.tier})` : item.name,
       count: active.reduce((n, b) => n + (picksOf(b, ev)?.[course.id] ?? []).filter((id) => id === item.id).length, 0),
     })),
   }));
+  if (!ev.tiers) return courses;
+  const types = (b: Booking) => b.types ?? [];
+  return [
+    {
+      course: "Places",
+      items: ev.tiers.map((t) => ({
+        name: t.label,
+        count: active.reduce((n, b) => n + types(b).filter((id) => id === t.id).length, 0),
+      })),
+    },
+    ...courses,
+  ];
 }
 
 /** What the public booking page may know: never how many have booked or how many places remain. */
@@ -203,6 +253,7 @@ export function publicStatus(status: ReturnType<typeof capacityStatus>) {
     soldOut,
     closesAt: status.closesAt,
     courses: status.courses,
+    tiers: status.tiers,
   };
 }
 
@@ -218,7 +269,7 @@ export function pickSummary(b: Booking, ev: EventDef | null): string {
   return ev.courses
     .map((course) => {
       const counts: Record<string, number> = {};
-      (picks[course.id] ?? []).forEach((id) => {
+      (picks[course.id] ?? []).filter(Boolean).forEach((id) => {
         const name = course.items.find((i) => i.id === id)?.name ?? id;
         counts[name] = (counts[name] || 0) + 1;
       });
@@ -234,6 +285,7 @@ export function placeLines(b: Booking, ev: EventDef | null): string[] {
   if (!picks || !ev?.courses) return [];
   return Array.from({ length: b.guests }, (_, i) => {
     const who = b.names?.[i] || `Place ${i + 1}`;
+    const tier = tierOf(ev, b.types?.[i]);
     const what = ev.courses!
       .map((course) => {
         const item = course.items.find((it) => it.id === picks[course.id]?.[i]);
@@ -241,6 +293,7 @@ export function placeLines(b: Booking, ev: EventDef | null): string[] {
       })
       .filter(Boolean)
       .join(" · ");
-    return `${who} — ${what}`;
+    const detail = [tier?.label, what].filter(Boolean).join(" · ");
+    return `${who} — ${detail}`;
   });
 }
