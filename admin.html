@@ -580,9 +580,9 @@
       const ts = tiers();
       const tier = ts.find((t) => t.id === type);
       const typeSel = ts.length
-        ? '<select class="p-type"><option value="">Ticket…</option>' + ts.map((t) => `<option value="${t.id}"${type === t.id ? ' selected' : ''}>${escapeHtml(t.label)}${t.price ? ' £' + t.price : ''}</option>`).join('') + '</select>'
+        ? '<select class="p-type"><option value="">Adult / child…</option>' + ts.map((t) => `<option value="${t.id}"${type === t.id ? ' selected' : ''}>${escapeHtml(t.label)}${t.price ? ' £' + t.price : ''}</option>`).join('') + '</select>'
         : '';
-      const showPicks = !ts.length || (tier && tier.meal);
+      const showPicks = !ts.length || !!tier;
       return `<div class="place-row"><input class="p-name" placeholder="Guest name" maxlength="60" value="${escapeAttr(name || '')}" />` + typeSel +
         (showPicks ? cs.map((c) => `<select class="p-pick" data-course="${c.id}"><option value="">${escapeHtml(c.label)}…</option>` +
           c.items.filter((it) => !ts.length || !it.tier || it.tier === type).map((it) => `<option value="${it.id}"${(choice || {})[c.id] === it.id ? ' selected' : ''}>${escapeHtml(it.name)}</option>`).join('') + '</select>').join('') : '') +
@@ -609,15 +609,14 @@
         names.push(name);
         const typeSel = row.querySelector('.p-type');
         if (typeSel) {
-          if (!typeSel.value) throw new Error('Place ' + (i + 1) + ' needs a ticket type.');
+          if (!typeSel.value) throw new Error('Place ' + (i + 1) + ' needs adult or child dinner.');
           types.push(typeSel.value);
         }
         const sels = [...row.querySelectorAll('.p-pick')];
         (courses() || []).forEach((c) => {
           const sel = sels.find((x) => x.dataset.course === c.id);
-          // a ticket with no meal (awards only) has no dish selects: record "" for it
-          if (sel && !sel.value) throw new Error('Place ' + (i + 1) + ' needs a choice for every course.');
-          picks[c.id].push(sel ? sel.value : '');
+          if (!sel || !sel.value) throw new Error('Place ' + (i + 1) + ' needs a choice for every course.');
+          picks[c.id].push(sel.value);
         });
       });
       return Object.assign({ names, picks, guests: rows.length }, tiers().length ? { types } : {});
