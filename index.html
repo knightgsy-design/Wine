@@ -114,6 +114,14 @@
     .menu-course .dish { font-weight: 700; font-size: 15px; line-height: 1.3; }
     .menu-course .desc { color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; margin-top: 3px; }
     .tag { display: inline-block; font-weight: 700; font-size: 11px; line-height: 1; color: #2f6b45; border: 1.5px solid #2f6b45; border-radius: 999px; padding: 3px 7px 2px; margin-left: 6px; vertical-align: 2px; }
+    .booknote { margin: 0 0 16px; }
+    .callout.booknote { margin-top: 0; }
+    .menu-fold summary { cursor: pointer; font: 700 18px 'Playfair Display', Georgia, serif; color: var(--sea); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .menu-fold summary::-webkit-details-marker { display: none; }
+    .menu-fold summary::after { content: '+'; font: 700 22px 'Inter', sans-serif; color: var(--accent-ink); }
+    .menu-fold[open] summary::after { content: '\2212'; }
+    .menu-fold .menu-course li { padding: 8px 0; }
+    .menu-fold .menu-course .desc { font-size: 12.5px; }
     .menu-tier { margin: 22px 0 0; padding-top: 4px; font: 700 13px 'Inter', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); }
     .menu-tier span { color: var(--ink-soft); letter-spacing: 0; text-transform: none; font-weight: 600; }
     .menu-key { margin: 14px 0 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
@@ -275,8 +283,8 @@
         short: '28 Nov · 6pm',
         eyebrow: 'Saturday 28th November 2026',
         title: 'GYC Junior Sailing Awards Evening 2026',
-        sub: 'Celebrate our junior sailors with the awards ceremony, then join us for dinner in the Main Bar.',
-        priceText: 'Dinner £20 adult · £10 child',
+        sub: "Celebrate our junior sailors with the awards ceremony, then stay for dinner in the Main Bar. We'd love to see you even if you're not eating.",
+        priceText: 'Awards free · Dinner £20 adult · £10 child',
         price: 20,
         maxPerBooking: 20,
         hasMenu: true,
@@ -286,11 +294,10 @@
           ['📅', '<b>Saturday 28th November 2026</b>'],
           ['🕕', '<b>6pm to 8pm</b>'],
           ['🏆', '<b>Awards ceremony at 6pm</b> in the GYC Club Room'],
-          ['🍽️', '<b>Dinner at 7pm</b> in the Main Bar — book below'],
-          ['🎟️', '<b>No booking needed</b> if you are only coming to the awards ceremony'],
-          ['💷', 'Dinner is <b>two courses</b>: <b>£20</b> adults, <b>£10</b> children'],
+          ['🍽️', '<b>Dinner at 7pm</b> in the Main Bar (optional)'],
+          ['💷', 'Dinner is <b>two courses</b>: <b>£20</b> adults, <b>£10</b> children (children\'s dinners suggested for 12 and under, but older children can have one too)'],
         ],
-        callout: 'Child dinners are suggested for ages 12 and under because of portion size, but can be ordered for older children too.',
+        bookNote: "<b>Not eating? Please still book.</b> Choose <b>Awards only (free)</b> for each person so we know you're coming. It costs nothing and helps us plan the room.",
       },
       {
         id: 'christmas-lunch',
@@ -401,7 +408,8 @@
         <div class="card" data-menucard hidden></div>
 
         <div class="card" id="book-${ev.id}">
-          <h3>Book &amp; pay</h3>
+          <h3>${ev.bookNote ? 'Book your place' : 'Book &amp; pay'}</h3>
+          ${ev.bookNote ? `<div class="callout booknote">${ev.bookNote}</div>` : ''}
           <p class="closes" data-closes hidden></p>
           <form data-form novalidate>
             <div class="two">
@@ -416,7 +424,7 @@
             <div class="field"><label>${ev.hasMenu ? 'Allergies / dietary notes' : 'Notes'} <span class="hint">(optional)</span></label><textarea name="notes"></textarea></div>
             <div class="msg" data-msg></div>
             <button class="pay" type="submit" data-pay>Pay &amp; confirm</button>
-            <p class="secure">🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.</p>
+            <p class="secure" data-secure>🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.</p>
           </form>
           <div class="full" data-full>Sorry — this event is now fully booked.<br />Email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a> to join the waiting list.</div>
         </div>`;
@@ -456,7 +464,15 @@
         if (!tiers) return n * price;
         return Array.from({ length: n }, (_, i) => tierById(typeOf(i))?.price || 0).reduce((a, b) => a + b, 0);
       };
-      const setLabel = () => { pay.innerHTML = `Pay ${money(total())} &amp; confirm`; };
+      const allFree = () => !!tiers && Array.from({ length: Number(guestsSel.value || 1) }, (_, i) => typeOf(i)).every((t) => t && tierById(t)?.price === 0);
+      const setLabel = () => {
+        const chosen = tiers && Array.from({ length: Number(guestsSel.value || 1) }, (_, i) => typeOf(i)).some(Boolean);
+        pay.innerHTML = tiers && !chosen ? 'Book my place' : allFree() ? 'Confirm my place (free)' : `Pay ${money(total())} &amp; confirm`;
+        const sec = $('[data-secure]', panel);
+        if (sec) sec.innerHTML = allFree()
+          ? 'No payment is needed for the awards ceremony. Your place is confirmed straight away and you will be sent a confirmation email.'
+          : "🔒 Your place is only confirmed once payment is complete. You'll be taken to SumUp's secure payment page, then sent a confirmation email.";
+      };
       const showErr = (t) => { msg.textContent = t; msg.classList.add('show'); };
 
       function renderMenuCard() {
@@ -469,8 +485,8 @@
             const items = c.items.filter((i) => !i.tier || i.tier === t.id);
             return items.length ? `<div class="menu-course"><h4>${esc(c.label)}</h4><ul>${items.map((i) => `<li><div class="dish">${esc(i.name)}</div>${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ''}</li>`).join('')}</ul></div>` : '';
           }).join('');
-          card.innerHTML = '<h3>Dinner menu</h3><p class="meal-help">Everyone gets two courses: choose one main and one dessert.</p>' +
-            tiers.map((t) => `<p class="menu-tier">${esc(t.label)} <span>· ${money(t.price)} for two courses</span></p>${courseList(t)}`).join('');
+          card.innerHTML = '<details class="menu-fold"><summary>See the dinner menu</summary><p class="meal-help">Dinner is optional. Everyone gets two courses: choose one main and one dessert.</p>' +
+            tiers.filter((t) => t.meal).map((t) => `<p class="menu-tier">${esc(t.label)} <span>· ${money(t.price)} for two courses</span></p>${courseList(t)}`).join('') + '</details>';
           card.hidden = false;
           return;
         }
@@ -490,13 +506,13 @@
         mealsEl.querySelectorAll('select, input').forEach((el) => { keep[el.name] = el.value; });
         const two = courses.length > 1;
         if (tiers) {
-          const opts = (sel) => `<option value="">Select…</option>` + tiers.map((t) => `<option value="${t.id}"${sel === t.id ? ' selected' : ''}>${esc(t.label)}${' — ' + money(t.price)}</option>`).join('');
-          mealsEl.innerHTML = `<b>Who's coming, and what would they like?</b><span class="meal-help">Enter each guest's name, choose adult or child, then a main and a dessert, so the kitchen knows who ordered what.</span>` +
+          const opts = (sel) => `<option value="">Select…</option>` + tiers.map((t) => `<option value="${t.id}"${sel === t.id ? ' selected' : ''}>${esc(t.label)}${t.price ? ' — ' + money(t.price) : ''}</option>`).join('');
+          mealsEl.innerHTML = `<b>Who's coming, and what would they like?</b><span class="meal-help">Enter each guest's name and choose their ticket. Dinner guests also choose a main and a dessert, so the kitchen knows who ordered what.</span>` +
             Array.from({ length: n }, (_, i) => {
               const t = tierById(keep[`type_${i}`]);
               return `<div class="meal-guest"><input name="guest_${i}" placeholder="Place ${i + 1}: guest name" maxlength="60" autocomplete="off" required value="${esc(keep[`guest_${i}`] ?? '')}" />
-                <div class="meal-row tier-row"><span>Dinner</span><select name="type_${i}" required>${opts(keep[`type_${i}`])}</select></div>
-                ${t ? courses.map((c) => `
+                <div class="meal-row tier-row"><span>Ticket</span><select name="type_${i}" required>${opts(keep[`type_${i}`])}</select></div>
+                ${t && t.meal ? courses.map((c) => `
                 <div class="meal-row"><span>${esc(c.label)}</span><select name="pick_${c.id}_${i}" required>
                   <option value="">Select…</option>${c.items.filter((it) => !it.tier || it.tier === t.id).map((it) => `<option value="${it.id}"${keep[`pick_${c.id}_${i}`] === it.id ? ' selected' : ''}>${esc(it.name)}</option>`).join('')}
                 </select></div>`).join('') : ''}</div>`;
@@ -594,12 +610,12 @@
           if (payload.names.some((n) => !n)) return showErr('Please give a name for every place.');
           if (tiers) {
             payload.types = Array.from({ length: guests }, (_, i) => typeOf(i));
-            if (payload.types.some((t) => !t)) return showErr('Please choose adult or child dinner for every place.');
+            if (payload.types.some((t) => !t)) return showErr('Please choose a ticket for every place.');
           }
           payload.picks = {};
           for (const c of courses) {
-            payload.picks[c.id] = Array.from({ length: guests }, (_, i) => f[`pick_${c.id}_${i}`]?.value || '');
-            if (payload.picks[c.id].some((m) => !m)) return showErr(`Please choose a ${c.label.toLowerCase()} for every place.`);
+            payload.picks[c.id] = Array.from({ length: guests }, (_, i) => (tiers && !tierById(payload.types[i])?.meal) ? '' : (f[`pick_${c.id}_${i}`]?.value || ''));
+            if (payload.picks[c.id].some((m, i) => !m && !(tiers && !tierById(payload.types[i])?.meal))) return showErr(`Please choose a ${c.label.toLowerCase()} for every place that is having dinner.`);
           }
         }
         pay.disabled = true; pay.textContent = 'Opening secure payment…';

@@ -19,7 +19,7 @@ export type Booking = {
   names?: string[];
   /** Tiered events only: each place's ticket type id (index = place). */
   types?: string[];
-  /** Menu choices: course id → one item id per place (index = place). */
+  /** Menu choices: course id → one item id per place (index = place). "" where a place has no meal. */
   picks?: Record<string, string[]>;
   /** Legacy: single-course events stored a flat list. Read via picksOf(), never written. */
   meals?: string[];
@@ -102,7 +102,7 @@ export function tierOf(ev: EventDef | null, id: string | undefined): Tier | unde
   return ev?.tiers?.find((t) => t.id === id);
 }
 
-/** What a booking costs: each place's own tier price (adult / child) on a tiered event, else places × price. */
+/** What a booking costs: each place's own tier price on a tiered event, else places × price. */
 export function computeTotal(ev: EventDef, guests: number, types?: string[]): number {
   const total = ev.tiers
     ? (types ?? []).reduce((sum, id) => sum + (tierOf(ev, id)?.price ?? 0), 0)
@@ -120,8 +120,10 @@ export function parsePicks(raw: any, ev: EventDef, guests: number, types?: strin
     out[course.id] = list.map((m: any, i: number) => {
       const id = str(m, 30);
       if (ev.tiers) {
+        const tier = tierOf(ev, types?.[i]);
+        if (!tier?.meal) return ""; // awards-only place: no meal
         const item = course.items.find((it) => it.id === id);
-        if (!item || (item.tier && item.tier !== types?.[i])) {
+        if (!item || (item.tier && item.tier !== tier.id)) {
           throw new Error(`Place ${i + 1} has no ${course.label.toLowerCase()} chosen.`);
         }
         return id;
