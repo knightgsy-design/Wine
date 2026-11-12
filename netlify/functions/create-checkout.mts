@@ -1,7 +1,7 @@
 import type { Config, Context } from "@netlify/functions";
 import { capacityStatus, listBookings, makeRef, parseDraft, publicStatus, str, writeBooking, type Booking } from "../lib/booking.mts";
 import { getEvent, isBookable } from "../lib/events.mts";
-import { createCheckout } from "../lib/services.mts";
+import { createCheckout, sendConfirmations } from "../lib/services.mts";
 
 export default async (req: Request, _context: Context) => {
   if (req.method !== "POST") {
@@ -48,6 +48,16 @@ export default async (req: Request, _context: Context) => {
     status: "awaiting_payment",
     createdAt: new Date().toISOString(),
   };
+
+  // Nothing to pay (every place is the free awards-only ticket): SumUp can't
+  // take a £0 checkout, so confirm the booking straight away.
+  if (booking.total === 0) {
+    booking.status = "paid";
+    booking.paidAt = booking.createdAt;
+    booking.confirmationSent = (await sendConfirmations(booking)).ok;
+    await writeBooking(booking);
+    return Response.json({ ref: booking.ref, total: 0, paymentUrl: `/confirmed?ref=${encodeURIComponent(booking.ref)}` });
+  }
 
   // Save before sending them to SumUp, so the webhook always finds a record.
   await writeBooking(booking);

@@ -14,8 +14,8 @@ export type MenuItem = {
   tier?: string;
 };
 
-/** A kind of place on a tiered event, each with its own price. */
-export type Tier = { id: string; label: string; price: number };
+/** A kind of place on a tiered event, each with its own price (0 = free, no payment taken). */
+export type Tier = { id: string; label: string; price: number; /** false = no meal to choose */ meal: boolean };
 
 /** One course of a set menu: every place picks exactly one item from each course. */
 export type Course = { id: string; label: string; items: MenuItem[] };
@@ -89,8 +89,9 @@ export const EVENTS: Record<string, EventDef> = {
     capacity: null, // TODO: confirm — no capacity was given for this event
     maxPerBooking: 20,
     tiers: [
-      { id: "adult", label: "Adult dinner", price: 20 },
-      { id: "child", label: "Child dinner", price: 10 },
+      { id: "ceremony", label: "Awards only (free)", price: 0, meal: false },
+      { id: "adult", label: "Adult dinner", price: 20, meal: true },
+      { id: "child", label: "Child dinner", price: 10, meal: true },
     ],
     courses: [
       {
@@ -120,7 +121,7 @@ export const EVENTS: Record<string, EventDef> = {
     where: "Guernsey Yacht Club: awards ceremony at 6pm in the Club Room, dinner at 7pm in the Main Bar",
     blurb: [
       "The Junior Sailing Awards ceremony starts at 6pm in the GYC Club Room, followed by dinner in the Main Bar at 7pm.",
-      "Dinner is two courses: £20 for adults, £10 for children. No booking is needed if you are only coming to the awards ceremony.",
+      "Coming to the awards ceremony only is free. Dinner is two courses: £20 for adults, £10 for children.",
     ],
   },
   "christmas-lunch": {
