@@ -297,7 +297,6 @@
           ['🍽️', '<b>Dinner at 7pm</b> in the Main Bar (optional)'],
           ['💷', 'Dinner is <b>two courses</b>: <b>£20</b> adults, <b>£10</b> children (children\'s dinners suggested for 12 and under, but older children can have one too)'],
         ],
-        bookFirst: true,
         bookNote: "<b>Not eating? Please still book.</b> Choose <b>Awards only (free)</b> for each person so we know you're coming. It costs nothing and helps us plan the room.",
       },
       {
@@ -409,7 +408,7 @@
         <div class="card" data-menucard hidden></div>
 
         <div class="card" id="book-${ev.id}">
-          <h3>${ev.bookFirst ? 'Book your place' : 'Book &amp; pay'}</h3>
+          <h3>${ev.bookNote ? 'Book your place' : 'Book &amp; pay'}</h3>
           ${ev.bookNote ? `<div class="callout booknote">${ev.bookNote}</div>` : ''}
           <p class="closes" data-closes hidden></p>
           <form data-form novalidate>
@@ -429,7 +428,6 @@
           </form>
           <div class="full" data-full>Sorry — this event is now fully booked.<br />Email <a href="mailto:events@gyc.org.gg">events@gyc.org.gg</a> to join the waiting list.</div>
         </div>`;
-      if (ev.bookFirst) { const m = $('[data-menucard]', panel); m.parentNode.insertBefore($('#book-' + ev.id, panel), m); }
       panelsEl.appendChild(panel);
       wire(ev, panel);
     });
