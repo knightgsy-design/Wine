@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GYC Events — Guernsey Yacht Club</title>
-  <meta name="description" content="Book your place at Guernsey Yacht Club events: the Gin & Rum Tasting at Wheadon's Bunker (14 Nov) and the Junior Sailing Awards Evening (28 Nov)." />
+  <meta name="description" content="Book your place at Guernsey Yacht Club events: the Junior Sailing Awards Evening (28 Nov)." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -259,6 +259,7 @@
       },
       {
         id: 'gin-rum',
+        suspended: true, // taken down: hidden from the page; reopen by removing this and setting `open: true` in netlify/lib/events.mts
         tab: 'Gin & Rum Tasting',
         short: '14 Nov · 5.30pm',
         eyebrow: 'Saturday 14th November 2026',
