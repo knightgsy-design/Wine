@@ -127,7 +127,7 @@ export const EVENTS: Record<string, EventDef> = {
   "christmas-lunch": {
     id: "christmas-lunch",
     refPrefix: "XMAS",
-    open: true,
+    open: false, // PRIVATE: hidden from the site and not bookable (its bookings still show in /admin). Set true to reopen.
     title: "Christmas Crew Lunch",
     price: 27.5,
     capacity: null, // no limit
