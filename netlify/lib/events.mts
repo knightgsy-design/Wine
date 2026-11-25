@@ -60,7 +60,7 @@ export const EVENTS: Record<string, EventDef> = {
   "gin-rum": {
     id: "gin-rum",
     refPrefix: "GINR",
-    open: true,
+    open: false, // TAKEN DOWN: hidden from the site and not bookable (its bookings still show in /admin). Set true to reopen.
     title: "Gin & Rum Tasting",
     price: 35,
     capacity: 24,
